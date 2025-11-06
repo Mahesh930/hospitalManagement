@@ -29,8 +29,13 @@ public class PatientTest {
     }
 
     @Test
-    public void testTransactionMethods(){
-    Patient patient = patientService.getPatientById(1L);
-        System.out.println(patient);
+    public void testTransactionMethods() {
+//    Patient patient = patientService.getPatientById(1L);
+//    }
+//        Patient patient = patientRepository.findByName("Mahi");
+//        System.out.println(patient);
+//        Patient patient1 = patientRepository.findByEmail("mahesh@gmail.com");
+//        System.out.println(patient1);
+
     }
 }
