@@ -1,6 +1,6 @@
 package com.mahesh.hospitalManagement.entity;
 
-import com.codingshuttle.youtube.hospitalManagement.entity.type.BloodGroupType;
+import com.mahesh.hospitalManagement.entity.type.BloodGroupType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

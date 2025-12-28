@@ -15,6 +15,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
 @Configuration
 public class AppConfig {
+
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();

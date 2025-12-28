@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class PermissionType {
+public enum PermissionType {
 
     PATIENT_READ("patient:read"),
     PATIENT_WRITE("patient:write"),

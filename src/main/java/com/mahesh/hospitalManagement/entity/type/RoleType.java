@@ -1,6 +1,6 @@
 package com.mahesh.hospitalManagement.entity.type;
 
-public class RoleType {
+public enum RoleType {
     ADMIN,
     DOCTOR,
     PATIENT

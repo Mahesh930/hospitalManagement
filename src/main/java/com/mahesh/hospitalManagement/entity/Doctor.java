@@ -28,7 +28,7 @@ public class Doctor {
     @Column(length = 100)
     private String specialization;
 
-    @Column(unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
     @ManyToMany(mappedBy = "doctors")

@@ -1,6 +1,6 @@
 package com.mahesh.hospitalManagement.entity.type;
 
-public class BloodGroupType {
+public enum BloodGroupType {
     A_POSITIVE,
     A_NEGATIVE,
     B_POSITIVE,

@@ -1,6 +1,6 @@
 package com.mahesh.hospitalManagement.entity.type;
 
-public class AuthProviderType {
+public enum AuthProviderType {
     GOOGLE,
     GITHUB,
     FACEBOOK,
