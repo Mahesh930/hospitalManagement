@@ -2,6 +2,7 @@ package com.mahesh.hospitalManagement.controller;
 
 import com.mahesh.hospitalManagement.entity.User;
 
+import com.mahesh.hospitalManagement.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;

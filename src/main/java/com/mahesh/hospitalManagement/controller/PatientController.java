@@ -1,5 +1,6 @@
 package com.mahesh.hospitalManagement.controller;
 
+import com.mahesh.hospitalManagement.service.AppointmentService;
 import com.mahesh.hospitalManagement.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
