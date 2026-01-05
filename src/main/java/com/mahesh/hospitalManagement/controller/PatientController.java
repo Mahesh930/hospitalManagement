@@ -1,5 +1,8 @@
 package com.mahesh.hospitalManagement.controller;
 
+import com.mahesh.hospitalManagement.dto.AppointmentResponseDto;
+import com.mahesh.hospitalManagement.dto.CreateAppointmentRequestDto;
+import com.mahesh.hospitalManagement.dto.PatientResponseDto;
 import com.mahesh.hospitalManagement.service.AppointmentService;
 import com.mahesh.hospitalManagement.service.PatientService;
 import lombok.RequiredArgsConstructor;

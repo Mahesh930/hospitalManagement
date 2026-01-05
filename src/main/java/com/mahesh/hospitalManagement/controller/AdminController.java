@@ -1,6 +1,10 @@
 package com.mahesh.hospitalManagement.controller;
 
 
+import com.mahesh.hospitalManagement.dto.DoctorResponseDto;
+import com.mahesh.hospitalManagement.dto.OnboardDoctorRequestDto;
+import com.mahesh.hospitalManagement.dto.PatientResponseDto;
+import com.mahesh.hospitalManagement.service.DoctorService;
 import com.mahesh.hospitalManagement.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

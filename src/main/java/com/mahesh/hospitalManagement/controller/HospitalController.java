@@ -1,5 +1,7 @@
 package com.mahesh.hospitalManagement.controller;
 
+import com.mahesh.hospitalManagement.dto.DoctorResponseDto;
+import com.mahesh.hospitalManagement.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

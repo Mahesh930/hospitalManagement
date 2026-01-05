@@ -1,6 +1,8 @@
 package com.mahesh.hospitalManagement.entity;
 
 
+import com.mahesh.hospitalManagement.entity.type.AuthProviderType;
+import com.mahesh.hospitalManagement.entity.type.RoleType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,5 +1,10 @@
 package com.mahesh.hospitalManagement.controller;
 
+import com.mahesh.hospitalManagement.dto.LoginRequestDto;
+import com.mahesh.hospitalManagement.dto.LoginResponseDto;
+import com.mahesh.hospitalManagement.dto.SignUpRequestDto;
+import com.mahesh.hospitalManagement.dto.SignupResponseDto;
+import com.mahesh.hospitalManagement.security.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,5 +1,6 @@
 package com.mahesh.hospitalManagement.controller;
 
+import com.mahesh.hospitalManagement.dto.AppointmentResponseDto;
 import com.mahesh.hospitalManagement.entity.User;
 
 import com.mahesh.hospitalManagement.service.AppointmentService;
