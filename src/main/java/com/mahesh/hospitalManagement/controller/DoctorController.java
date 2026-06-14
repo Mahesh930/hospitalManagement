@@ -19,10 +19,14 @@ import java.util.List;
 public class DoctorController {
     private final AppointmentService appointmentService;
 
+    /**
+     * Endpoint for doctors to view all their scheduled appointments.
+     * Uses the current authenticated user's ID to fetch appointments.
+     * @return ResponseEntity with a list of AppointmentResponseDto.
+     */
     @GetMapping("/appointments")
     public ResponseEntity<List<AppointmentResponseDto>> getAllAppointmentsOfDoctor() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(appointmentService.getAllAppointmentsOfDoctor(user.getId()));
     }
-
 }

@@ -9,9 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.mahesh.hospitalManagement.entity.type.PermissionType.*;
-import static com.mahesh.hospitalManagement.entity.type.RoleType.DOCTOR;
-import static com.mahesh.hospitalManagement.entity.type.RoleType.PATIENT;
-import static com.mahesh.hospitalManagement.entity.type.RoleType.ADMIN;
+import static com.mahesh.hospitalManagement.entity.type.RoleType.*;
 
 
 public class RolePermissionMapping {

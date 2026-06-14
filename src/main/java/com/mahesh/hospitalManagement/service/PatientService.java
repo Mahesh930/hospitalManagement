@@ -18,19 +18,25 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
 
-    @Transactional // this anotation is usefull for database transaction management
-    //  If anything throws an exception here, changes will be rolled back
-    public Patient getPatientById(Long id){
-        Patient p1 = patientRepository.findById(id).orElseThrow();
-
-        Patient p2 = patientRepository.findById(id).orElseThrow();
-
-//        p1.setName("Mahi");
-
-
-        return p1;
+    /**
+     * Retrieves a patient by their unique ID.
+     * @param id The ID of the patient to retrieve.
+     * @return PatientResponseDto containing patient details.
+     * @throws RuntimeException if patient is not found.
+     */
+    @Transactional
+    public PatientResponseDto getPatientById(Long id){
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient not found with id: " + id));
+        return modelMapper.map(patient, PatientResponseDto.class);
     }
 
+    /**
+     * Retrieves a paginated list of all patients.
+     * @param pageNumber The page number to retrieve.
+     * @param pageSize The number of patients per page.
+     * @return List of PatientResponseDto.
+     */
     public List<PatientResponseDto> getAllPatients(Integer pageNumber, Integer pageSize) {
         return patientRepository.findAllPatients(PageRequest.of(pageNumber, pageSize))
                 .stream()

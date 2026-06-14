@@ -20,6 +20,12 @@ public class AdminController {
     private final PatientService patientService;
     private final DoctorService doctorService;
 
+    /**
+     * Endpoint for administrators to retrieve a paginated list of all patients.
+     * @param pageNumber The page number to retrieve (default: 0).
+     * @param pageSize The number of records per page (default: 10).
+     * @return ResponseEntity containing a list of PatientResponseDto.
+     */
     @GetMapping("/patients")
     public ResponseEntity<List<PatientResponseDto>> getAllPatients(
             @RequestParam(value = "page", defaultValue = "0") Integer pageNumber,
@@ -28,6 +34,11 @@ public class AdminController {
         return ResponseEntity.ok(patientService.getAllPatients(pageNumber, pageSize));
     }
 
+    /**
+     * Endpoint for administrators to onboard a new doctor.
+     * @param onboardDoctorRequestDto Request body with user ID and doctor details.
+     * @return ResponseEntity with the newly onboarded doctor's details.
+     */
     @PostMapping("/onBoardNewDoctor")
     public ResponseEntity<DoctorResponseDto> onBoardNewDoctor(@RequestBody OnboardDoctorRequestDto onboardDoctorRequestDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(doctorService.onBoardNewDoctor(onboardDoctorRequestDto));

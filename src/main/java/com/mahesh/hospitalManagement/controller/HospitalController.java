@@ -16,6 +16,11 @@ import java.util.List;
 public class HospitalController {
     private final DoctorService doctorService;
 
+    /**
+     * Publicly accessible endpoint to retrieve a list of all doctors.
+     * Useful for patients to browse available doctors before booking.
+     * @return ResponseEntity with a list of DoctorResponseDto.
+     */
     @GetMapping("/doctors")
     public ResponseEntity<List<DoctorResponseDto>> getAllDoctors() {
         return ResponseEntity.ok(doctorService.getAllDoctors());

@@ -25,6 +25,10 @@ public class DoctorService {
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
 
+    /**
+     * Retrieves all doctors registered in the system.
+     * @return List of DoctorResponseDto.
+     */
     public List<DoctorResponseDto> getAllDoctors() {
         return doctorRepository.findAll()
                 .stream()
@@ -33,12 +37,21 @@ public class DoctorService {
     }
 
 
+    /**
+     * Onboards a new doctor by associating a user account with doctor details.
+     * Updates the user's role to include DOCTOR.
+     * @param onBoardDoctorRequestDto DTO containing user ID and doctor details.
+     * @return DoctorResponseDto of the onboarded doctor.
+     */
     @Transactional
     public DoctorResponseDto onBoardNewDoctor(OnboardDoctorRequestDto onBoardDoctorRequestDto) {
-        User user = userRepository.findById(onBoardDoctorRequestDto.getUserId()).orElseThrow();
+        log.info("Onboarding new doctor for user ID: {}", onBoardDoctorRequestDto.getUserId());
+        
+        User user = userRepository.findById(onBoardDoctorRequestDto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if(doctorRepository.existsById(onBoardDoctorRequestDto.getUserId())) {
-            throw new IllegalArgumentException("Already a doctor");
+            throw new IllegalArgumentException("User is already registered as a doctor");
         }
 
         Doctor doctor = Doctor.builder()
@@ -47,8 +60,12 @@ public class DoctorService {
                 .user(user)
                 .build();
 
+        // Add DOCTOR role to the user
         user.getRoles().add(RoleType.DOCTOR);
 
-        return modelMapper.map(doctorRepository.save(doctor), DoctorResponseDto.class);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        log.info("Successfully onboarded doctor: {}", savedDoctor.getName());
+        
+        return modelMapper.map(savedDoctor, DoctorResponseDto.class);
     }
 }

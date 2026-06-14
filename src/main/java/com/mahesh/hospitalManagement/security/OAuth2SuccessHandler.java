@@ -16,6 +16,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/**
+ * Custom success handler for OAuth2 authentication.
+ * After successful login via a provider like Google, it generates a system-specific JWT token.
+ */
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -23,7 +27,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final AuthService authService;
     private final ObjectMapper objectMapper;
 
-
+    /**
+     * Handles successful OAuth2 authentication by calling AuthService to process the user data
+     * and writing the LoginResponseDto (containing the JWT) to the response body.
+     */
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
@@ -31,11 +38,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String registrationId = token.getAuthorizedClientRegistrationId();
 
-       ResponseEntity<LoginResponseDto> loginResponse =  authService.handleOAuth2LoginRequest(oAuth2User, registrationId);
+        // Delegate user login/signup and JWT generation to AuthService
+        ResponseEntity<LoginResponseDto> loginResponse = authService.handleOAuth2LoginRequest(oAuth2User, registrationId);
 
-       response.setStatus(loginResponse.getStatusCode().value());
-       response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-       response.getWriter().write(objectMapper.writeValueAsString(loginResponse.getBody()));
-
+        // Configure response to return JSON containing the JWT
+        response.setStatus(loginResponse.getStatusCode().value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(objectMapper.writeValueAsString(loginResponse.getBody()));
     }
 }

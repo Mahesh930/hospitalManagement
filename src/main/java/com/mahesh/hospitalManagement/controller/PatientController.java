@@ -17,14 +17,26 @@ public class PatientController {
     private final PatientService patientService;
     private final AppointmentService appointmentService;
 
+    /**
+     * Endpoint for a patient to create a new appointment.
+     * @param createAppointmentRequestDto Request body containing appointment details.
+     * @return ResponseEntity with the created appointment details.
+     */
     @PostMapping("/appointments")
-    public ResponseEntity<AppointmentResponseDto> createNewAppointment(@RequestBody CreateAppointmentRequestDto createAppointmentRequestDto) {
+    public ResponseEntity<AppointmentResponseDto> createNewAppointment(
+            @RequestBody CreateAppointmentRequestDto createAppointmentRequestDto)
+    {
         return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.createNewAppointment(createAppointmentRequestDto));
     }
 
+    /**
+     * Endpoint for the logged-in patient to view their profile.
+     * Uses the current authenticated user's ID.
+     * @return ResponseEntity with the patient's profile details.
+     */
     @GetMapping("/profile")
-    private ResponseEntity<PatientResponseDto> getPatientProfile() {
-        Long patientId = 4L;
-        return ResponseEntity.ok(patientService.getPatientById(patientId));
+    public ResponseEntity<PatientResponseDto> getPatientProfile() {
+        com.mahesh.hospitalManagement.entity.User user = (com.mahesh.hospitalManagement.entity.User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(patientService.getPatientById(user.getId()));
     }
 }
