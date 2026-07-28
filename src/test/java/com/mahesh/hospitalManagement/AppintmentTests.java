@@ -1,7 +1,7 @@
 package com.mahesh.hospitalManagement;
 
-
 import com.mahesh.hospitalManagement.entity.Appointment;
+import com.mahesh.hospitalManagement.dto.CreateAppointmentRequestDto;
 import com.mahesh.hospitalManagement.service.AppointmentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,25 +16,27 @@ public class AppintmentTests {
     private AppointmentService appointmentService;
 
     @Test
-    public void testCreateNewAppointment(){
-        Appointment appointment = Appointment.builder()
-                .appointmentTime(LocalDateTime.of(2026, 1,1, 14,0))
-                .reason("General")
-                .build();
+    public void testCreateNewAppointment() {
+        CreateAppointmentRequestDto dto = new CreateAppointmentRequestDto();
+        dto.setAppointmentTime(LocalDateTime.of(2026, 1, 1, 14, 0));
+        dto.setReason("General");
+        dto.setPatientId(1L);
+        dto.setDoctorId(2L);
 
-        var newAppointment =appointmentService.createNewAppointment(appointment, 1L, 2L);
+        var newAppointment = appointmentService.createNewAppointment(dto);
 
         System.out.println(newAppointment);
     }
 
     @Test
-    public void testReAssignAppointmentToAnotherDoctor(){
-        Appointment appointment = Appointment.builder()
-                .appointmentTime(LocalDateTime.of(2026, 1,1, 14,0))
-                .reason("General")
-                .build();
+    public void testReAssignAppointmentToAnotherDoctor() {
+        CreateAppointmentRequestDto dto = new CreateAppointmentRequestDto();
+        dto.setAppointmentTime(LocalDateTime.of(2026, 1, 1, 14, 0));
+        dto.setReason("General");
+        dto.setPatientId(2L);
+        dto.setDoctorId(2L);
 
-        var newAppointment =appointmentService.createNewAppointment(appointment, 2L, 2L);
+        var newAppointment = appointmentService.createNewAppointment(dto);
 
         System.out.println(newAppointment);
     }
