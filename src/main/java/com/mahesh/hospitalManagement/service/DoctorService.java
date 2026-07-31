@@ -5,15 +5,17 @@ import com.mahesh.hospitalManagement.dto.OnboardDoctorRequestDto;
 import com.mahesh.hospitalManagement.entity.Doctor;
 import com.mahesh.hospitalManagement.entity.User;
 import com.mahesh.hospitalManagement.entity.type.RoleType;
+import com.mahesh.hospitalManagement.error.ResourceNotFoundException;
 import com.mahesh.hospitalManagement.repository.DoctorRepository;
 import com.mahesh.hospitalManagement.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,10 +27,6 @@ public class DoctorService {
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
 
-    /**
-     * Retrieves all doctors registered in the system.
-     * @return List of DoctorResponseDto.
-     */
     public List<DoctorResponseDto> getAllDoctors() {
         return doctorRepository.findAll()
                 .stream()
@@ -36,36 +34,32 @@ public class DoctorService {
                 .collect(Collectors.toList());
     }
 
-
-    /**
-     * Onboards a new doctor by associating a user account with doctor details.
-     * Updates the user's role to include DOCTOR.
-     * @param onBoardDoctorRequestDto DTO containing user ID and doctor details.
-     * @return DoctorResponseDto of the onboarded doctor.
-     */
     @Transactional
-    public DoctorResponseDto onBoardNewDoctor(OnboardDoctorRequestDto onBoardDoctorRequestDto) {
-        log.info("Onboarding new doctor for user ID: {}", onBoardDoctorRequestDto.getUserId());
-        
-        User user = userRepository.findById(onBoardDoctorRequestDto.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public DoctorResponseDto onBoardNewDoctor(OnboardDoctorRequestDto dto) {
+        log.info("Onboarding new doctor for user ID: {}", dto.getUserId());
 
-        if(doctorRepository.existsById(onBoardDoctorRequestDto.getUserId())) {
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + dto.getUserId()));
+
+        if (doctorRepository.findByUserId(dto.getUserId()).isPresent()) {
             throw new IllegalArgumentException("User is already registered as a doctor");
         }
 
         Doctor doctor = Doctor.builder()
-                .name(onBoardDoctorRequestDto.getName())
-                .specialization(onBoardDoctorRequestDto.getSpecialization())
+                .name(dto.getName())
+                .specialization(dto.getSpecialization())
+                .registrationNumber(dto.getRegistrationNumber())
+                .consultationFee(dto.getConsultationFee() != null ? dto.getConsultationFee() : 500.0)
+                .email(dto.getEmail() != null ? dto.getEmail() : user.getUsername() + "@medicore.local")
                 .user(user)
                 .build();
 
-        // Add DOCTOR role to the user
         user.getRoles().add(RoleType.DOCTOR);
+        userRepository.save(user);
 
         Doctor savedDoctor = doctorRepository.save(doctor);
         log.info("Successfully onboarded doctor: {}", savedDoctor.getName());
-        
+
         return modelMapper.map(savedDoctor, DoctorResponseDto.class);
     }
 }

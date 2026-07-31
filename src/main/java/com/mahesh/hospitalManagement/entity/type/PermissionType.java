@@ -1,4 +1,5 @@
 package com.mahesh.hospitalManagement.entity.type;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -11,7 +12,12 @@ public enum PermissionType {
     APPOINTMENT_READ("appointment:read"),
     APPOINTMENT_WRITE("appointment:write"),
     APPOINTMENT_DELETE("appointment:delete"),
-    USER_MANAGE("user:manage"), // For admin tasks
+    OPD_READ("opd:read"),
+    OPD_WRITE("opd:write"),
+    BILLING_READ("billing:read"),
+    BILLING_WRITE("billing:write"),
+    MASTER_DATA_MANAGE("master_data:manage"),
+    USER_MANAGE("user:manage"),
     REPORT_VIEW("report:view");
 
     private final String permission;

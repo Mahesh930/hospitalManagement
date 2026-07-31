@@ -1,20 +1,20 @@
 package com.mahesh.hospitalManagement.service;
 
-import com.mahesh.hospitalManagement.dto.AppointmentResponseDto;
+import com.mahesh.hospitalManagement.dto.AppointmentDto;
 import com.mahesh.hospitalManagement.entity.Appointment;
 import com.mahesh.hospitalManagement.entity.Doctor;
 import com.mahesh.hospitalManagement.entity.Patient;
+import com.mahesh.hospitalManagement.error.BusinessValidationException;
+import com.mahesh.hospitalManagement.error.ResourceNotFoundException;
 import com.mahesh.hospitalManagement.repository.AppointmentRepository;
 import com.mahesh.hospitalManagement.repository.DoctorRepository;
 import com.mahesh.hospitalManagement.repository.PatientRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,68 +22,88 @@ import java.util.stream.Collectors;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
-    private final ModelMapper modelMapper;
+    private final DoctorRepository doctorRepository;
+    private final AuditService auditService;
 
-    /**
-     * Creates a new appointment based on the request DTO.
-     * @param createAppointmentRequestDto DTO containing doctor ID, patient ID, and appointment details.
-     * @return AppointmentResponseDto of the newly created appointment.
-     */
     @Transactional
-    @Secured("ROLE_PATIENT")
-    public AppointmentResponseDto createNewAppointment(com.mahesh.hospitalManagement.dto.CreateAppointmentRequestDto createAppointmentRequestDto){
-        Doctor doctor = doctorRepository.findById(createAppointmentRequestDto.getDoctorId())
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
-        Patient patient = patientRepository.findById(createAppointmentRequestDto.getPatientId())
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+    public AppointmentDto bookAppointment(AppointmentDto dto, String currentUser) {
+        Doctor doctor = doctorRepository.findById(dto.getDoctorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + dto.getDoctorId()));
 
-        Appointment appointment = modelMapper.map(createAppointmentRequestDto, Appointment.class);
-        appointment.setPatient(patient);
-        appointment.setDoctor(doctor);
+        Patient patient = patientRepository.findById(dto.getPatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + dto.getPatientId()));
 
-        // Maintain bidirectional consistency
-        patient.getAppointments().add(appointment);
+        // Double booking check
+        if (appointmentRepository.existsByDoctorIdAndAppointmentTime(dto.getDoctorId(), dto.getAppointmentTime())) {
+            throw new BusinessValidationException("Slot no longer available for doctor at " + dto.getAppointmentTime());
+        }
 
-        Appointment savedAppointment = appointmentRepository.save(appointment);
-        return modelMapper.map(savedAppointment, AppointmentResponseDto.class);
+        Appointment appointment = Appointment.builder()
+                .doctor(doctor)
+                .patient(patient)
+                .appointmentTime(dto.getAppointmentTime())
+                .reason(dto.getReason())
+                .status("BOOKED")
+                .build();
+
+        Appointment saved = appointmentRepository.save(appointment);
+
+        auditService.logAction(currentUser, "BOOK_APPOINTMENT", null, saved.getId().toString(), null, null, null);
+
+        return mapToDto(saved);
     }
 
-    /**
-     * Reassigns an existing appointment to a different doctor.
-     * @param appointmentId The ID of the appointment to reassign.
-     * @param doctorId The ID of the new doctor.
-     * @return AppointmentResponseDto of the updated appointment.
-     */
     @Transactional
-    @PreAuthorize("hasAuthority('appointment:write') OR #doctorId == authentication.principal.id")
-    public AppointmentResponseDto reAssignAppointmentToAnotherDoctor(Long appointmentId, Long doctorId){
+    public AppointmentDto checkInPatient(UUID appointmentId, String currentUser) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
-        Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with ID: " + appointmentId));
 
-        appointment.setDoctor(doctor);
-        // Maintain bidirectional consistency
-        doctor.getAppointments().add(appointment);
+        if ("CHECKED_IN".equals(appointment.getStatus()) || "COMPLETED".equals(appointment.getStatus())) {
+            throw new BusinessValidationException("Appointment is already " + appointment.getStatus());
+        }
 
-        return modelMapper.map(appointment, AppointmentResponseDto.class);
+        // Get current queue count for doctor to assign queueOrder
+        List<Appointment> existingQueue = appointmentRepository.findByDoctorIdAndStatusOrderByQueueOrderAsc(
+                appointment.getDoctor().getId(), "CHECKED_IN");
+
+        int nextQueueOrder = existingQueue.size() + 1;
+        appointment.setStatus("CHECKED_IN");
+        appointment.setQueueOrder(nextQueueOrder);
+
+        Appointment updated = appointmentRepository.save(appointment);
+
+        auditService.logAction(currentUser, "CHECK_IN_PATIENT", "BOOKED", "CHECKED_IN (Queue: " + nextQueueOrder + ")", null, null, null);
+
+        return mapToDto(updated);
     }
 
-    /**
-     * Retrieves all appointments for a specific doctor.
-     * @param doctorId The ID of the doctor.
-     * @return List of AppointmentResponseDto.
-     */
-    @PreAuthorize("hasRole('ADMIN') OR (hasRole('DOCTOR') AND #doctorId == authentication.principal.id)")
-    public List<AppointmentResponseDto> getAllAppointmentsOfDoctor(Long doctorId) {
-        Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
-
-        return doctor.getAppointments()
-                .stream()
-                .map(appointment -> modelMapper.map(appointment, AppointmentResponseDto.class))
+    @Transactional(readOnly = true)
+    public List<AppointmentDto> getDoctorQueue(UUID doctorId) {
+        return appointmentRepository.findByDoctorIdAndStatusOrderByQueueOrderAsc(doctorId, "CHECKED_IN").stream()
+                .map(this::mapToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentDto> getPatientAppointmentHistory(UUID patientId) {
+        return appointmentRepository.findByPatientIdOrderByAppointmentTimeDesc(patientId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public AppointmentDto mapToDto(Appointment appointment) {
+        return AppointmentDto.builder()
+                .id(appointment.getId())
+                .patientId(appointment.getPatient().getId())
+                .patientName(appointment.getPatient().getName())
+                .patientUhid(appointment.getPatient().getUhid())
+                .doctorId(appointment.getDoctor().getId())
+                .doctorName(appointment.getDoctor().getName())
+                .appointmentTime(appointment.getAppointmentTime())
+                .reason(appointment.getReason())
+                .status(appointment.getStatus())
+                .queueOrder(appointment.getQueueOrder())
+                .build();
     }
 }

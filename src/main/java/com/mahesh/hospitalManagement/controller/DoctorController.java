@@ -1,8 +1,8 @@
 package com.mahesh.hospitalManagement.controller;
 
-import com.mahesh.hospitalManagement.dto.AppointmentResponseDto;
+import com.mahesh.hospitalManagement.dto.AppointmentDto;
+import com.mahesh.hospitalManagement.dto.common.ApiResponse;
 import com.mahesh.hospitalManagement.entity.User;
-
 import com.mahesh.hospitalManagement.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +17,13 @@ import java.util.List;
 @RequestMapping("/doctors")
 @RequiredArgsConstructor
 public class DoctorController {
+
     private final AppointmentService appointmentService;
 
-    /**
-     * Endpoint for doctors to view all their scheduled appointments.
-     * Uses the current authenticated user's ID to fetch appointments.
-     * @return ResponseEntity with a list of AppointmentResponseDto.
-     */
-    @GetMapping("/appointments")
-    public ResponseEntity<List<AppointmentResponseDto>> getAllAppointmentsOfDoctor() {
+    @GetMapping("/queue")
+    public ResponseEntity<ApiResponse<List<AppointmentDto>>> getMyQueue() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.ok(appointmentService.getAllAppointmentsOfDoctor(user.getId()));
+        List<AppointmentDto> queue = appointmentService.getDoctorQueue(user.getId());
+        return ResponseEntity.ok(ApiResponse.success(queue));
     }
 }

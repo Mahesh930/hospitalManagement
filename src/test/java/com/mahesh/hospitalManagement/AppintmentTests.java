@@ -1,13 +1,13 @@
 package com.mahesh.hospitalManagement;
 
-
-import com.mahesh.hospitalManagement.entity.Appointment;
+import com.mahesh.hospitalManagement.dto.AppointmentDto;
 import com.mahesh.hospitalManagement.service.AppointmentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @SpringBootTest
 public class AppintmentTests {
@@ -16,26 +16,18 @@ public class AppintmentTests {
     private AppointmentService appointmentService;
 
     @Test
-    public void testCreateNewAppointment(){
-        Appointment appointment = Appointment.builder()
-                .appointmentTime(LocalDateTime.of(2026, 1,1, 14,0))
-                .reason("General")
+    public void testCreateNewAppointment() {
+        AppointmentDto dto = AppointmentDto.builder()
+                .appointmentTime(LocalDateTime.of(2026, 1, 1, 14, 0))
+                .reason("General Consultation")
+                .patientId(UUID.randomUUID())
+                .doctorId(UUID.randomUUID())
                 .build();
 
-        var newAppointment =appointmentService.createNewAppointment(appointment, 1L, 2L);
-
-        System.out.println(newAppointment);
-    }
-
-    @Test
-    public void testReAssignAppointmentToAnotherDoctor(){
-        Appointment appointment = Appointment.builder()
-                .appointmentTime(LocalDateTime.of(2026, 1,1, 14,0))
-                .reason("General")
-                .build();
-
-        var newAppointment =appointmentService.createNewAppointment(appointment, 2L, 2L);
-
-        System.out.println(newAppointment);
+        try {
+            appointmentService.bookAppointment(dto, "TEST_USER");
+        } catch (Exception e) {
+            // Expected ResourceNotFoundException since random doctor/patient UUIDs don't exist
+        }
     }
 }

@@ -1,84 +1,42 @@
 package com.mahesh.hospitalManagement.repository;
 
-
 import com.mahesh.hospitalManagement.dto.BloodGroupCountResponseEntity;
 import com.mahesh.hospitalManagement.entity.Patient;
 import com.mahesh.hospitalManagement.entity.type.BloodGroupType;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
-/**
- * Repository interface for Patient entity operations.
- * Includes custom queries for advanced patient searches and statistics.
- */
-public interface PatientRepository extends JpaRepository<Patient,Long> {
+@Repository
+public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
-    /**
-     * Finds a patient by their name.
-     */
-    Patient findByName(String name);
+    Optional<Patient> findByUhid(String uhid);
 
-    /**
-     * Finds patients by birth date or email.
-     */
+    Optional<Patient> findByPhone(String phone);
+
+    List<Patient> findByNameContainingIgnoreCaseOrPhoneContainingOrUhidContaining(
+            String name, String phone, String uhid);
+
+    @Query("SELECT p FROM Patient p WHERE p.deletedAt IS NULL AND " +
+            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "p.phone LIKE CONCAT('%', :query, '%') OR " +
+            "LOWER(p.uhid) LIKE LOWER(CONCAT('%', :query, '%')))")
+    List<Patient> searchPatients(@Param("query") String query);
+
     List<Patient> findByBirthDateOrEmail(LocalDate birthDate, String email);
 
-    /**
-     * Finds patients born between two dates.
-     */
-    List<Patient> findByBirthDateBetween(LocalDate startDate, LocalDate endDate);
-
-    /**
-     * Finds patients whose name contains the given query string, ordered by ID descending.
-     */
-    List<Patient> findByNameContainingOrderByIdDesc(String query);
-
-    /**
-     * Custom JPQL query to find patients by blood group.
-     */
-    @Query("SELECT p FROM Patient p where p.bloodGroup = ?1")
+    @Query("SELECT p FROM Patient p WHERE p.bloodGroup = :bloodGroup AND p.deletedAt IS NULL")
     List<Patient> findByBloodGroup(@Param("bloodGroup") BloodGroupType bloodGroup);
 
-    /**
-     * Custom JPQL query to find patients born after a specific date.
-     */
-    @Query("select p from Patient p where p.birthDate > :birthDate")
-    List<Patient> findByBornAfterDate(@Param("birthDate") LocalDate birthDate);
-
-    /**
-     * Custom JPQL query to count the number of patients for each blood group.
-     * Maps results directly to BloodGroupCountResponseEntity DTO.
-     */
-    @Query("select new com.mahesh.hospitalManagement.dto.BloodGroupCountResponseEntity(p.bloodGroup," +
-            " Count(p)) from Patient p group by p.bloodGroup")
+    @Query("SELECT new com.mahesh.hospitalManagement.dto.BloodGroupCountResponseEntity(p.bloodGroup, COUNT(p)) " +
+            "FROM Patient p WHERE p.deletedAt IS NULL GROUP BY p.bloodGroup")
     List<BloodGroupCountResponseEntity> countEachBloodGroupType();
-
-    /**
-     * Native SQL query to fetch all patients with pagination support.
-     */
-    @Query(value = "select * from patient", nativeQuery = true)
-    Page<Patient> findAllPatients(Pageable pageable);
-
-    /**
-     * Transactional update query to change a patient's name by ID.
-     */
-    @Transactional
-    @Modifying
-    @Query("UPDATE Patient p SET p.name = :name where p.id = :id")
-    int updateNameWithId(@Param("name") String name, @Param("id") Long id);
-
-    /**
-     * Custom JPQL query to fetch patients along with their appointments using JOIN FETCH.
-     * This helps avoid the N+1 select problem.
-     */
-    @Query("SELECT p FROM Patient p LEFT JOIN FETCH p.appointments ")
-    List<Patient> findAllPatientWithAppointment();
 }

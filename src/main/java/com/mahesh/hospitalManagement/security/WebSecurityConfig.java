@@ -39,6 +39,7 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
+                .cors(cors -> {})
                 // Disable CSRF for stateless API
                 .csrf(csrfConfigurer -> csrfConfigurer.disable())
                 // Set session management to stateless as we use JWT
@@ -50,8 +51,8 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/admin/**")
                                 .hasAnyAuthority(APPOINTMENT_DELETE.name()
                                         ,USER_MANAGE.name())
-                        .requestMatchers("/admin/**").hasRole(ADMIN.name())
-                        .requestMatchers("/doctors/**").hasAnyRole(DOCTOR.name(),ADMIN.name())
+                        .requestMatchers("/admin/**").hasAnyRole(SUPER_ADMIN.name(), ADMIN.name())
+                        .requestMatchers("/doctors/**").hasAnyRole(DOCTOR.name(), ADMIN.name(), SUPER_ADMIN.name())
                         .anyRequest().authenticated()
                 )
                 // Add JWT filter before the standard authentication filter
