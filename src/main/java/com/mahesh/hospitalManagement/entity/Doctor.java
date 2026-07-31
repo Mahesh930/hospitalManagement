@@ -1,4 +1,5 @@
 package com.mahesh.hospitalManagement.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,13 +14,11 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Doctor {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(name = "doctor")
+public class Doctor extends BaseEntity {
 
     @OneToOne
-    @MapsId
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(nullable = false, length = 100)
@@ -28,12 +27,24 @@ public class Doctor {
     @Column(length = 100)
     private String specialization;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(length = 50)
+    private String registrationNumber;
+
+    @Column(nullable = false)
+    private Double consultationFee;
+
+    @Column(nullable = false, length = 100)
     private String email;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
+
     @ManyToMany(mappedBy = "doctors")
+    @Builder.Default
     private Set<Department> departments = new HashSet<>();
 
     @OneToMany(mappedBy = "doctor")
+    @Builder.Default
     private List<Appointment> appointments = new ArrayList<>();
 }

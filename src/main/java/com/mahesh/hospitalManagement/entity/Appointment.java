@@ -12,10 +12,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class Appointment  {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(
+        name = "appointment",
+        indexes = {
+                @Index(name = "idx_appointment_doctor_time", columnList = "doctor_id, appointmentTime")
+        }
+)
+public class Appointment extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDateTime appointmentTime;
@@ -23,13 +26,21 @@ public class Appointment  {
     @Column(length = 500)
     private String reason;
 
-    @ManyToOne
+    @Column(nullable = false, length = 30)
+    private String status; // BOOKED, CHECKED_IN, IN_CONSULTATION, COMPLETED, CANCELLED
+
+    private Integer queueOrder;
+
+    @Version
+    private Long version;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @ToString.Exclude
-    @JoinColumn(name = "patient_id", nullable = false) // patient is required and not nullable
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @ToString.Exclude
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "doctor_id", nullable = false)
     private Doctor doctor;
 }

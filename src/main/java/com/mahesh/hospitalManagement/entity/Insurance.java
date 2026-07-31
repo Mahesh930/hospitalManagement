@@ -1,11 +1,12 @@
 package com.mahesh.hospitalManagement.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -13,10 +14,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Insurance {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(name = "insurance")
+public class Insurance extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 50)
     private String policyNumber;
@@ -27,10 +26,6 @@ public class Insurance {
     @Column(nullable = false)
     private LocalDate validUntil;
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @OneToOne(mappedBy = "insurance") // inverse side
+    @OneToOne(mappedBy = "insurance")
     private Patient patient;
 }

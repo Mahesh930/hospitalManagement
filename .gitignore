@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend ###
+node_modules/
+.next/
+.turbo/
+*.tsbuildinfo
+
+### Scratch / Temp ###
+scratch/
+

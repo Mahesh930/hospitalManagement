@@ -1,77 +1,82 @@
 package com.mahesh.hospitalManagement.error;
 
+import com.mahesh.hospitalManagement.dto.common.ApiErrorResponse;
 import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * Handles exceptions when a user is not found.
-     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiErrorResponse.of(404, ex.getMessage()));
+    }
+
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiError> handleUsernameNotFoundException(UsernameNotFoundException ex){
-        ApiError apiError = new ApiError(ex.getMessage(), HttpStatus.NOT_FOUND );
-        return new ResponseEntity<>(apiError, apiError.getStatusCode());
+    public ResponseEntity<ApiErrorResponse> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiErrorResponse.of(404, ex.getMessage()));
     }
 
-    /**
-     * Handles authentication-related exceptions.
-     */
+    @ExceptionHandler(BusinessValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleBusinessValidation(BusinessValidationException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiErrorResponse.of(422, ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, Object> details = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                details.put(error.getField(), error.getDefaultMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(400, "Validation failed", details));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiError> handleAuthenticationException(AuthenticationException ex) {
-        ApiError apiError = new ApiError("Authentication failed: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
-        return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ApiErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(401, "Authentication failed: " + ex.getMessage()));
     }
 
-    /**
-     * Handles JWT-related security exceptions.
-     */
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ApiError> handleJwtException(JwtException ex) {
-        ApiError apiError = new ApiError("Invalid JWT token: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
-        return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ApiErrorResponse> handleJwtException(JwtException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(401, "Invalid JWT token: " + ex.getMessage()));
     }
 
-    /**
-     * Handles authorization-related exceptions (Access Denied).
-     */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException ex) {
-        ApiError apiError = new ApiError("Access denied: Insufficient permissions", HttpStatus.FORBIDDEN);
-        return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiErrorResponse.of(403, "Access denied: Insufficient permissions"));
     }
 
-    /**
-     * Handles invalid argument exceptions, typically for bad request data.
-     */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiError> handleIllegalArgumentException(IllegalArgumentException ex) {
-        ApiError apiError = new ApiError(ex.getMessage(), HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(400, ex.getMessage()));
     }
 
-    /**
-     * Handles general runtime exceptions.
-     */
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiError> handleRuntimeException(RuntimeException ex) {
-        ApiError apiError = new ApiError(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ApiErrorResponse> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiErrorResponse.of(500, ex.getMessage()));
     }
 
-    /**
-     * Catch-all handler for any other unexpected exceptions.
-     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGenericException(Exception ex) {
-        ApiError apiError = new ApiError("An unexpected error occurred: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiErrorResponse.of(500, "An unexpected error occurred: " + ex.getMessage()));
     }
 }

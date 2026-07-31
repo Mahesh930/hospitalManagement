@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/*  LIGHT THEME (default)                                             */
+/* ------------------------------------------------------------------ */
+@theme {
+  /* Page / Background */
+  --color-background: hsl(210 20% 98%);        /* very light warm gray */
+  --color-foreground: hsl(220 20% 14%);         /* near-black text */
+
+  /* Cards */
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(220 20% 14%);
+
+  /* Popover */
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(220 20% 14%);
+
+  /* Primary – Blue-600 based */
+  --color-primary: hsl(221 83% 53%);
+  --color-primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary */
+  --color-secondary: hsl(214 32% 91%);
+  --color-secondary-foreground: hsl(220 20% 14%);
+
+  /* Muted */
+  --color-muted: hsl(210 20% 95%);
+  --color-muted-foreground: hsl(220 10% 46%);
+
+  /* Accent */
+  --color-accent: hsl(214 32% 91%);
+  --color-accent-foreground: hsl(220 20% 14%);
+
+  /* Destructive */
+  --color-destructive: hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  /* Status colors */
+  --color-success: hsl(142 71% 45%);
+  --color-success-foreground: hsl(0 0% 100%);
+  --color-warning: hsl(38 92% 50%);
+  --color-warning-foreground: hsl(0 0% 100%);
+  --color-allergy: hsl(0 72% 51%);
+  --color-allergy-foreground: hsl(0 0% 100%);
+
+  /* Borders & inputs */
+  --color-border: hsl(220 13% 91%);
+  --color-input: hsl(220 13% 91%);
+  --color-ring: hsl(221 83% 53%);
+
+  /* Sidebar – Dark sidebar in BOTH themes (standard SaaS pattern) */
+  --color-sidebar: hsl(222 47% 11%);
+  --color-sidebar-foreground: hsl(210 40% 98%);
+  --color-sidebar-accent: hsl(217 33% 17%);
+  --color-sidebar-muted: hsl(215 20% 65%);
+  --color-sidebar-border: hsl(217 33% 17%);
+  --color-sidebar-active: hsl(221 83% 53%);
+
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  DARK THEME                                                        */
+/* ------------------------------------------------------------------ */
+.dark {
+  --color-background: hsl(222 47% 6%);
+  --color-foreground: hsl(210 40% 96%);
+
+  --color-card: hsl(222 47% 9%);
+  --color-card-foreground: hsl(210 40% 96%);
+
+  --color-popover: hsl(222 47% 9%);
+  --color-popover-foreground: hsl(210 40% 96%);
+
+  --color-primary: hsl(217 92% 60%);
+  --color-primary-foreground: hsl(222 47% 11%);
+
+  --color-secondary: hsl(217 33% 17%);
+  --color-secondary-foreground: hsl(210 40% 96%);
+
+  --color-muted: hsl(217 33% 14%);
+  --color-muted-foreground: hsl(215 20% 55%);
+
+  --color-accent: hsl(217 33% 17%);
+  --color-accent-foreground: hsl(210 40% 96%);
+
+  --color-destructive: hsl(0 63% 31%);
+  --color-destructive-foreground: hsl(210 40% 96%);
+
+  --color-border: hsl(217 33% 17%);
+  --color-input: hsl(217 33% 17%);
+  --color-ring: hsl(224 76% 48%);
+
+  /* Sidebar in dark is nearly same, slightly deeper */
+  --color-sidebar: hsl(222 47% 7%);
+  --color-sidebar-foreground: hsl(210 40% 96%);
+  --color-sidebar-accent: hsl(217 33% 14%);
+  --color-sidebar-muted: hsl(215 20% 55%);
+  --color-sidebar-border: hsl(217 33% 14%);
+  --color-sidebar-active: hsl(217 92% 55%);
+}
+
+/* ------------------------------------------------------------------ */
+/*  BASE STYLES                                                       */
+/* ------------------------------------------------------------------ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .allergy-banner {
+    @apply bg-allergy text-allergy-foreground px-4 py-2 rounded-md font-semibold text-sm flex items-center gap-2;
+  }
+}

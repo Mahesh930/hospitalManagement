@@ -28,9 +28,10 @@ public class AuthUtil {
     public String generateAccessToken(User user){
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("userId",user.getId().toString())
+                .claim("userId", user.getId().toString())
+                .claim("roles", user.getRoles() != null ? user.getRoles().stream().map(Enum::name).toList() : java.util.List.of())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis()+ 1000*60*10))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
                 .signWith(getSecretKey())
                 .compact();
     }
