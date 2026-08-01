@@ -1,7 +1,6 @@
 package com.mahesh.hospitalManagement;
 
 import com.mahesh.hospitalManagement.entity.Patient;
-import com.mahesh.hospitalManagement.service.PatientService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,9 +13,6 @@ public class PatientTest {
 
     @Autowired
     private PatientRepository patientRepository;
-
-    @Autowired
-    private PatientService patientService;
 
     @Test
     public void testPatientRepository(){

@@ -25,7 +25,8 @@ public class InsuranceService {
 
         patient.setInsurance(insurance);
         insurance.setPatient(patient);
-        return patient;
+        insuranceRepository.save(insurance);
+        return patientRepository.save(patient);
     }
 
     @Transactional

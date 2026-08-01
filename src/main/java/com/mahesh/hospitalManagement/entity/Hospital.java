@@ -1,8 +1,6 @@
 package com.mahesh.hospitalManagement.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -24,5 +22,23 @@ public class Hospital extends BaseEntity {
     private String registrationNumber;
 
     @Column(nullable = false, length = 20)
-    private String status; // ACTIVE, TRIAL, READ_ONLY
+    @Builder.Default
+    private String status = "ACTIVE"; // ACTIVE, TRIAL, READ_ONLY, SUSPENDED
+
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "details_id")
+    private HospitalDetails details;
+
+    @Builder.Default
+    private Integer maxUsers = 25;
+
+    @Builder.Default
+    private Integer maxDoctors = 10;
+
+    @Builder.Default
+    private Integer maxBeds = 50;
+
+    @Builder.Default
+    private Boolean isSuspended = false;
 }
+

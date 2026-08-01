@@ -8,7 +8,7 @@ import Link from "next/link";
 import {
   Activity, LayoutDashboard, Users, CalendarDays, Stethoscope,
   Receipt, Database, Settings, LogOut, ChevronLeft, Menu, Shield,
-  FileSpreadsheet, Sun, Moon,
+  FileSpreadsheet, Sun, Moon, Building2, ToggleLeft, CreditCard, UserCog
 } from "lucide-react";
 
 interface NavItem {
@@ -20,6 +20,10 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PHARMACIST", "PATIENT"] },
+  { label: "SaaS Hospitals", href: "/super-admin/hospitals", icon: Building2, roles: ["SUPER_ADMIN"] },
+  { label: "User Operations", href: "/super-admin/user-operations", icon: UserCog, roles: ["SUPER_ADMIN"] },
+  { label: "Feature Flags", href: "/super-admin/feature-flags", icon: ToggleLeft, roles: ["SUPER_ADMIN"] },
+  { label: "Subscriptions", href: "/super-admin/subscriptions", icon: CreditCard, roles: ["SUPER_ADMIN"] },
   { label: "Patients", href: "/patients", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST"] },
   { label: "Appointments", href: "/appointments", icon: CalendarDays, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"] },
   { label: "OPD Consultation", href: "/opd", icon: Stethoscope, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },

@@ -57,9 +57,10 @@ public class AuthUtil {
     }
 
     public String determineProviderIdFromOAuth2User(OAuth2User oAuth2User, String registrationId){
+        Object githubId = oAuth2User.getAttribute("id");
         String providerId = switch (registrationId.toLowerCase()){
             case "google"-> oAuth2User.getAttribute("sub");
-            case "github"-> oAuth2User.getAttribute("id").toString();
+            case "github"-> githubId != null ? githubId.toString() : null;
             default -> {
                 log.error("Unsupported OAuth2 provider: {}", registrationId);
                 throw new IllegalArgumentException("Unsupported OAuth2 provider: "+registrationId);

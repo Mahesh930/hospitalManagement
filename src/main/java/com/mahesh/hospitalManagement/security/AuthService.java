@@ -10,8 +10,10 @@ import com.mahesh.hospitalManagement.entity.type.AuthProviderType;
 import com.mahesh.hospitalManagement.entity.type.RoleType;
 import com.mahesh.hospitalManagement.repository.PatientRepository;
 import com.mahesh.hospitalManagement.repository.UserRepository;
+import com.mahesh.hospitalManagement.service.AuditService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -35,21 +38,34 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PatientRepository patientRepository;
+    private final AuditService auditService;
 
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(), loginRequestDto.getPassword())
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(), loginRequestDto.getPassword())
+            );
 
-        User user = (User) authentication.getPrincipal();
-        String token = authUtil.generateAccessToken(user);
+            User user = (User) authentication.getPrincipal();
+            String token = authUtil.generateAccessToken(user);
 
-        return LoginResponseDto.builder()
-                .jwt(token)
-                .userId(user.getId())
-                .username(user.getUsername())
-                .roles(user.getRoles())
-                .build();
+            // Audit: successful login
+            auditService.logAction(user.getUsername(), "LOGIN_SUCCESS", null, "Token issued", "0.0.0.0", "Web",
+                    user.getHospital() != null ? user.getHospital().getName() : "Platform");
+
+            return LoginResponseDto.builder()
+                    .jwt(token)
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .roles(user.getRoles())
+                    .build();
+
+        } catch (BadCredentialsException e) {
+            // Audit: failed login
+            log.warn("Failed login attempt for username: {}", loginRequestDto.getUsername());
+            auditService.logAction(loginRequestDto.getUsername(), "LOGIN_FAILED", null, "Bad credentials", "0.0.0.0", "Web", "Platform");
+            throw e;
+        }
     }
 
     @Transactional

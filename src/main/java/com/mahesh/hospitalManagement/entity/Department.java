@@ -34,5 +34,6 @@ public class Department extends BaseEntity {
             joinColumns = @JoinColumn(name = "department_id"),
             inverseJoinColumns = @JoinColumn(name = "doctor_id")
     )
+    @Builder.Default
     private Set<Doctor> doctors = new HashSet<>();
 }

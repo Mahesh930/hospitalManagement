@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -24,7 +23,6 @@ import static com.mahesh.hospitalManagement.entity.type.RoleType.*;
 @EnableMethodSecurity
 public class WebSecurityConfig {
 
-    private final PasswordEncoder passwordEncoder;
     private final JwtAuthFilter jwtAuthFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final HandlerExceptionResolver handlerExceptionResolver;
@@ -48,6 +46,7 @@ public class WebSecurityConfig {
                 // Configure endpoint-based authorization
                 .authorizeHttpRequests(auth-> auth
                         .requestMatchers("/public/**", "/auth/**").permitAll()
+                        .requestMatchers("/super-admin/**").hasRole(SUPER_ADMIN.name())
                         .requestMatchers(HttpMethod.DELETE, "/admin/**")
                                 .hasAnyAuthority(APPOINTMENT_DELETE.name()
                                         ,USER_MANAGE.name())
