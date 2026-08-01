@@ -40,6 +40,7 @@ public class OPDConsultationTest {
                 .build();
 
         PatientDto registered = patientService.registerPatient(patientDto, "TEST_ADMIN");
+        System.out.println("Registered test patient UHID: " + registered.getUhid());
 
         OPDConsultationDto.PrescriptionItemDto item = OPDConsultationDto.PrescriptionItemDto.builder()
                 .medicineName("Penicillin")

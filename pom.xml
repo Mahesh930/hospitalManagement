@@ -111,6 +111,11 @@
 				<version>3.11.0</version>
 				<configuration>
 					<release>17</release>
+					<compilerArgs>
+						<arg>-Xlint:all</arg>
+						<arg>-Xlint:-processing</arg>
+						<arg>-Xlint:-serial</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

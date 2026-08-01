@@ -6,7 +6,6 @@ import com.mahesh.hospitalManagement.error.BusinessValidationException;
 import com.mahesh.hospitalManagement.error.ResourceNotFoundException;
 import com.mahesh.hospitalManagement.repository.AppointmentRepository;
 import com.mahesh.hospitalManagement.repository.OPDConsultationRepository;
-import com.mahesh.hospitalManagement.repository.PatientRepository;
 import com.mahesh.hospitalManagement.repository.PrescriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,6 @@ public class OPDConsultationService {
 
     private final OPDConsultationRepository consultationRepository;
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final AuditService auditService;
 

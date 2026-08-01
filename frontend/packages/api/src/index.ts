@@ -13,3 +13,5 @@ export { hospitalsApi } from "./hospitals";
 export type { HospitalDto } from "./hospitals";
 export { masterDataApi } from "./master-data";
 export type { MedicineDto, DiagnosisDto, ChargeDto } from "./master-data";
+export { superAdminApi } from "./superAdmin";
+export type { SuperAdminHospitalDto, FeatureFlagDto, SuperAdminUserDto, PlatformStatsDto, PageResponse } from "./superAdmin";
