@@ -18,12 +18,34 @@ export interface PatientDto {
   uhid?: string;
   abhaId?: string;
   name: string;
+  middleName?: string;
+  lastName?: string;
   birthDate?: string;
   age?: number;
   phone: string;
+  altPhone?: string;
   email?: string;
   gender?: string;
   bloodGroup?: string;
+  maritalStatus?: string;
+  occupation?: string;
+  aadhaar?: string;
+  pan?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+  existingDiseases?: string;
+  previousSurgeries?: string;
+  disabilityStatus?: string;
+  pregnancyStatus?: boolean;
+  corporatePatient?: boolean;
+  tpaDetails?: string;
+  qrCodeData?: string;
+  isEmergency?: boolean;
   allergies?: AllergyDto[];
 }
 

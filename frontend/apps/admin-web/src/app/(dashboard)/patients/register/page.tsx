@@ -1,26 +1,37 @@
 "use client";
 
+/**
+ * Register Patient Page Component for MediCore ERP.
+ * 
+ * Features & UI Alignment:
+ * 1. Synchronized with Backend PatientDto and Patient JPA Entity.
+ * 2. Captures Demographics: Full Name, Mobile Phone, Email, Date of Birth, Age, Gender, Blood Group, ABHA ID.
+ * 3. Clinical Allergy Protocol: Allows recording multiple drug allergies with Severity and Reaction descriptions.
+ * 4. Submits payload to POST /patients endpoint, retrieves generated UHID, and navigates to Patient Profile.
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { patientsApi, PatientDto, AllergyDto } from "@medicore/api";
 import { toast } from "sonner";
-import { User, Phone, Mail, Calendar, ShieldAlert, Plus, Trash2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { User, Phone, Mail, Calendar, ShieldAlert, Plus, Trash2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterPatientPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Patient Fields
+  // Patient Demographic Fields
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState("MALE");
   const [age, setAge] = useState<number | "">("");
   const [bloodGroup, setBloodGroup] = useState("O+");
   const [abhaId, setAbhaId] = useState("");
 
-  // Allergy Items
+  // Clinical Allergy Items
   const [allergies, setAllergies] = useState<AllergyDto[]>([]);
   const [newAllergen, setNewAllergen] = useState("");
   const [newSeverity, setNewSeverity] = useState("HIGH");
@@ -53,6 +64,7 @@ export default function RegisterPatientPage() {
         name,
         phone,
         email: email || undefined,
+        birthDate: birthDate || undefined,
         gender,
         age: age ? Number(age) : undefined,
         bloodGroup,
@@ -83,7 +95,7 @@ export default function RegisterPatientPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-foreground">New Patient Registration</h1>
-          <p className="text-sm text-muted-foreground">US-120: Register patient &amp; record clinical allergy warnings</p>
+          <p className="text-sm text-muted-foreground">Register patient &amp; record clinical demographics and allergy warnings</p>
         </div>
       </div>
 
@@ -121,6 +133,37 @@ export default function RegisterPatientPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="10-digit mobile number"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-muted/30 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+                Email Address (Optional)
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. patient@example.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-muted/30 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+                Date of Birth (Optional)
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 bg-muted/30 border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -196,7 +239,7 @@ export default function RegisterPatientPage() {
               <ShieldAlert className="w-5 h-5 text-allergy" /> Drug &amp; Clinical Allergies
             </h2>
             <span className="text-xs bg-allergy/10 text-allergy font-medium px-2.5 py-1 rounded-full">
-              Hard Blocker Safety Protocol (US-141)
+              Hard Blocker Safety Protocol
             </span>
           </div>
 

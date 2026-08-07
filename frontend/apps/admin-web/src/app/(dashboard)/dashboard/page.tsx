@@ -1,14 +1,10 @@
 "use client";
 
-import { Users, CalendarDays, Receipt, Activity, Stethoscope, Clock, TrendingUp, IndianRupee } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Users, CalendarDays, Receipt, Activity, Stethoscope, Clock, IndianRupee, Bed, UserCheck } from "lucide-react";
 import Link from "next/link";
-
-const stats = [
-  { label: "Today's OPD", value: "—", icon: Stethoscope, color: "from-blue-500 to-blue-600", href: "/opd" },
-  { label: "Checked-In", value: "—", icon: Clock, color: "from-emerald-500 to-emerald-600", href: "/appointments/queue" },
-  { label: "Revenue Today", value: "—", icon: IndianRupee, color: "from-amber-500 to-amber-600", href: "/billing" },
-  { label: "Pending Bills", value: "—", icon: Receipt, color: "from-rose-500 to-rose-600", href: "/billing" },
-];
+import { adminApi, HospitalAdminStatsDto } from "@medicore/api";
+import { toast } from "sonner";
 
 const quickActions = [
   { label: "Register Patient", href: "/patients/register", icon: Users, desc: "New patient registration" },
@@ -18,17 +14,90 @@ const quickActions = [
 ];
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<HospitalAdminStatsDto | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const data = await adminApi.getStats();
+        setStats(data);
+      } catch (err: unknown) {
+        console.error("Failed to load admin stats", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  const statCards = [
+    {
+      label: "Today's OPD",
+      value: loading ? "—" : (stats?.todayOpdPatients ?? 0).toString(),
+      icon: Stethoscope,
+      color: "from-blue-500 to-blue-600",
+      href: "/opd",
+    },
+    {
+      label: "Checked-In",
+      value: loading ? "—" : (stats?.checkedInPatients ?? 0).toString(),
+      icon: Clock,
+      color: "from-emerald-500 to-emerald-600",
+      href: "/appointments/queue",
+    },
+    {
+      label: "Revenue Today",
+      value: loading ? "—" : `₹${(stats?.totalRevenueToday ?? 0).toLocaleString()}`,
+      icon: IndianRupee,
+      color: "from-amber-500 to-amber-600",
+      href: "/billing",
+    },
+    {
+      label: "Pending Bills",
+      value: loading ? "—" : (stats?.pendingBillsCount ?? 0).toString(),
+      icon: Receipt,
+      color: "from-rose-500 to-rose-600",
+      href: "/billing",
+    },
+    {
+      label: "Total Doctors",
+      value: loading ? "—" : (stats?.totalDoctors ?? 0).toString(),
+      icon: UserCheck,
+      color: "from-purple-500 to-purple-600",
+      href: "/settings/hospital",
+    },
+    {
+      label: "Total Patients",
+      value: loading ? "—" : (stats?.totalPatients ?? 0).toString(),
+      icon: Users,
+      color: "from-cyan-500 to-cyan-600",
+      href: "/patients",
+    },
+    {
+      label: "Bed Occupancy",
+      value: loading ? "—" : `${stats?.occupiedBeds ?? 0} / ${stats?.totalBeds ?? 50}`,
+      icon: Bed,
+      color: "from-indigo-500 to-indigo-600",
+      href: "/settings/hospital",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Welcome to MediCore ERP. Overview of today&apos;s operations.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Hospital Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Real-time operational, clinical, and financial analytics for your hospital.
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <Link
             key={stat.label}
             href={stat.href}
@@ -37,15 +106,11 @@ export default function DashboardPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                <p className="text-3xl font-bold text-foreground mt-2">{stat.value}</p>
+                <p className="text-2xl font-bold text-foreground mt-2">{stat.value}</p>
               </div>
               <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                 <stat.icon className="w-5 h-5 text-white" />
               </div>
-            </div>
-            <div className="mt-3 flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              <span>vs. yesterday</span>
             </div>
           </Link>
         ))}
@@ -53,7 +118,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Hospital Management Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <Link
@@ -70,44 +135,6 @@ export default function DashboardPage() {
               </div>
             </Link>
           ))}
-        </div>
-      </div>
-
-      {/* Recent Activity Placeholder */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-base font-semibold text-foreground mb-4">Recent Registrations</h3>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-32 bg-muted rounded animate-pulse" />
-                  <div className="h-2.5 w-20 bg-muted rounded animate-pulse" />
-                </div>
-              </div>
-            ))}
-            <p className="text-xs text-muted-foreground text-center pt-2">Connect to backend to see live data</p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-base font-semibold text-foreground mb-4">Doctor Queue</h3>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
-                  <div className="space-y-1.5">
-                    <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                    <div className="h-2.5 w-16 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-                <div className="h-6 w-12 bg-muted rounded animate-pulse" />
-              </div>
-            ))}
-            <p className="text-xs text-muted-foreground text-center pt-2">Connect to backend to see live data</p>
-          </div>
         </div>
       </div>
     </div>

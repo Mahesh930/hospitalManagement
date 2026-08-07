@@ -178,6 +178,7 @@ Every write operation (`Create`, `Update`, `Delete`, `Approve`, `Reject`, `Login
 ## CODE STYLE & TESTING
 
 - **Code Style**: SOLID, DRY, KISS, Single Responsibility, No Magic Numbers, Meaningful Naming, Small Functions, Dependency Injection, Reusable Components.
+- **Code Comments Rule**: Always add detailed, clear, production-grade inline comments and Javadoc/TSDoc across all backend and frontend code files in every task.
 - **Testing Checklist**: Unit Test, Integration Test, Permission Test, Validation Test, Transaction Test, Error Test, Edge Cases.
 
 ---

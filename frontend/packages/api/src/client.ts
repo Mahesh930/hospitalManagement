@@ -9,7 +9,8 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("medicore_token");
-    if (token) {
+    const isAuthEndpoint = config.url?.includes("/auth/login") || config.url?.includes("/auth/signup");
+    if (token && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
