@@ -11,8 +11,18 @@
 	<groupId>com.mahesh</groupId>
 	<artifactId>hospitalManagement</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>hospitalManagement</name>
-	<description>A project for hospital management system using spring boot</description>
+	<description>Enterprise Hospital Management System Monorepo</description>
+
+	<modules>
+		<module>backend/hospital-core</module>
+		<module>backend/hospital-patient</module>
+		<module>backend/hospital-reception</module>
+		<module>backend/hospital-opd</module>
+		<module>backend/hospital-billing</module>
+		<module>backend/hospital-app</module>
+	</modules>
 	<url/>
 	<licenses>
 		<license/>
@@ -31,6 +41,36 @@
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-api</artifactId>
+				<version>0.12.6</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-impl</artifactId>
+				<version>0.12.6</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-jackson</artifactId>
+				<version>0.12.6</version>
+			</dependency>
+			<dependency>
+				<groupId>org.modelmapper</groupId>
+				<artifactId>modelmapper</artifactId>
+				<version>3.2.0</version>
+			</dependency>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.18.46</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 
 		<dependency>
@@ -125,18 +165,7 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+
 		</plugins>
 	</build>
 

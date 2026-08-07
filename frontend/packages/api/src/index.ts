@@ -15,3 +15,16 @@ export { masterDataApi } from "./master-data";
 export type { MedicineDto, DiagnosisDto, ChargeDto } from "./master-data";
 export { superAdminApi } from "./superAdmin";
 export type { SuperAdminHospitalDto, FeatureFlagDto, SuperAdminUserDto, PlatformStatsDto, PageResponse } from "./superAdmin";
+export { adminApi } from "./admin";
+export type { HospitalAdminStatsDto, OnboardDoctorRequest, DoctorResponseDto } from "./admin";
+export { receptionistApi } from "./receptionist";
+export type {
+  ReceptionistDashboardDto,
+  DoctorQueueStatusDto,
+  VitalSignsDto,
+  WalkinTokenRequestDto,
+  QueueManagementDto,
+  EmergencyRegistrationDto,
+  DailyReceptionistReportDto,
+  PatientDocumentDto
+} from "./receptionist";

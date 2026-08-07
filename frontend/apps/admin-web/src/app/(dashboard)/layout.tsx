@@ -20,6 +20,7 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PHARMACIST", "PATIENT"] },
+  { label: "Reception Desk", href: "/reception", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
   { label: "SaaS Hospitals", href: "/super-admin/hospitals", icon: Building2, roles: ["SUPER_ADMIN"] },
   { label: "User Operations", href: "/super-admin/user-operations", icon: UserCog, roles: ["SUPER_ADMIN"] },
   { label: "Feature Flags", href: "/super-admin/feature-flags", icon: ToggleLeft, roles: ["SUPER_ADMIN"] },
@@ -29,7 +30,7 @@ const allNavItems: NavItem[] = [
   { label: "OPD Consultation", href: "/opd", icon: Stethoscope, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
   { label: "Billing & Invoices", href: "/billing", icon: Receipt, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST", "BILLING"] },
   { label: "Master Data", href: "/master-data/medicines", icon: Database, roles: ["SUPER_ADMIN", "ADMIN"] },
-  { label: "Audit Logs", href: "/settings/audit-logs", icon: FileSpreadsheet, roles: ["SUPER_ADMIN"] },
+  { label: "Audit Logs", href: "/settings/audit-logs", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN"] },
   { label: "Hospital Settings", href: "/settings/hospital", icon: Settings, roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 
