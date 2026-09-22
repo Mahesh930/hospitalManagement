@@ -25,9 +25,14 @@ public interface PatientVisitRepository extends JpaRepository<PatientVisit, UUID
 
     Optional<PatientVisit> findByAppointmentId(UUID appointmentId);
 
+    List<PatientVisit> findByPatientIdOrderByCheckInTimeDesc(UUID patientId);
+
     @Query("SELECT COUNT(pv) FROM PatientVisit pv WHERE pv.doctor.id = :doctorId AND pv.checkInTime >= :startOfDay AND pv.checkInTime <= :endOfDay AND pv.deletedAt IS NULL")
     long countTodayVisitsForDoctor(@Param("doctorId") UUID doctorId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
     @Query("SELECT COUNT(pv) FROM PatientVisit pv WHERE pv.status = :status AND pv.checkInTime >= :startOfDay AND pv.checkInTime <= :endOfDay AND pv.deletedAt IS NULL")
     long countTodayVisitsByStatus(@Param("status") String status, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT COUNT(pv) FROM PatientVisit pv WHERE pv.doctor.id = :doctorId AND pv.status = :status AND pv.checkInTime >= :startOfDay AND pv.checkInTime <= :endOfDay AND pv.deletedAt IS NULL")
+    long countTodayVisitsForDoctorByStatus(@Param("doctorId") UUID doctorId, @Param("status") String status, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 }

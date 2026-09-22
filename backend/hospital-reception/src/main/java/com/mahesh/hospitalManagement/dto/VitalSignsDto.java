@@ -26,6 +26,10 @@ public class VitalSignsDto {
     private Double temperature;
     private Double respiratoryRate;
     private Double spo2;
+    private Double bloodSugarMgDl;
+    private Integer painScore;
+    private String triagePriority;
+    private String chiefComplaint;
     private Boolean isAbnormal;
     private String abnormalNotes;
     private String recordedBy;

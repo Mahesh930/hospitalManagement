@@ -40,6 +40,10 @@ export interface VitalSignsDto {
   temperature?: number;
   respiratoryRate?: number;
   spo2?: number;
+  bloodSugarMgDl?: number;
+  painScore?: number;
+  triagePriority?: string;
+  chiefComplaint?: string;
   isAbnormal?: boolean;
   abnormalNotes?: string;
   recordedBy?: string;

@@ -47,7 +47,7 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                 .filter(p -> Boolean.TRUE.equals(p.getIsEmergency()))
                 .count();
 
-        long pendingBilling = invoiceRepository.countByStatus("PENDING");
+        long pendingBilling = invoiceRepository.countByPaymentStatus("PENDING");
 
         List<Doctor> doctors = doctorRepository.findAll();
         List<ReceptionistDashboardDto.DoctorQueueStatusDto> doctorQueues = doctors.stream().map(doc -> {
@@ -210,8 +210,6 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Override
     @Transactional
     public PatientDto registerEmergencyPatient(EmergencyRegistrationDto dto, String currentUser) {
-        String tempUhid = "TEMP-UHID-" + LocalDate.now().getYear() + "-" + String.format("%04d", new Random().nextInt(10000));
-        
         PatientDto patientReq = PatientDto.builder()
                 .name(dto.getName() != null && !dto.getName().isBlank() ? dto.getName() : "Emergency Unidentified")
                 .gender(dto.getGender() != null ? dto.getGender() : "UNKNOWN")

@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { RoleGuard } from "@/components/RoleGuard";
-import { superAdminApi, SuperAdminUserDto } from "@medicore/api";
+import { superAdminApi, SuperAdminUserDto, SuperAdminHospitalDto } from "@medicore/api";
 import {
   Users, Search, ShieldOff, ShieldCheck, Key, Trash2, RotateCcw,
-  Building2, Lock, Unlock, RefreshCw, AlertTriangle
+  Building2, Lock, Unlock, RefreshCw, AlertTriangle, Filter
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function UserOperationsPage() {
   const [users, setUsers] = useState<SuperAdminUserDto[]>([]);
+  const [hospitals, setHospitals] = useState<SuperAdminHospitalDto[]>([]);
+  const [selectedHospital, setSelectedHospital] = useState<string>("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetModal, setResetModal] = useState<{ open: boolean; userId: string; username: string }>({
@@ -18,10 +20,19 @@ export default function UserOperationsPage() {
   });
   const [newPassword, setNewPassword] = useState("");
 
-  const fetchUsers = async (q = search) => {
+  const fetchHospitals = async () => {
+    try {
+      const res = await superAdminApi.getAllHospitals();
+      setHospitals(res.data?.data || []);
+    } catch {
+      // Ignore background hospital fetch error
+    }
+  };
+
+  const fetchUsers = async (q = search, hospId = selectedHospital) => {
     setLoading(true);
     try {
-      const res = await superAdminApi.searchUsers(q, 0, 50);
+      const res = await superAdminApi.searchUsers(q, hospId, 0, 50);
       setUsers(res.data?.data?.content || []);
     } catch {
       toast.error("Failed to load users");
@@ -31,11 +42,13 @@ export default function UserOperationsPage() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchUsers(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+    fetchHospitals();
+  }, []);
 
-  useEffect(() => { fetchUsers(""); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => fetchUsers(search, selectedHospital), 300);
+    return () => clearTimeout(timer);
+  }, [search, selectedHospital]);
 
   const handleLock = async (id: string, isLocked: boolean) => {
     try {
@@ -96,16 +109,34 @@ export default function UserOperationsPage() {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users by username or phone... (debounced 300ms)"
-            className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        {/* Search & Hospital Filter */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users by username or phone... (debounced 300ms)"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div className="relative sm:w-72">
+            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <select
+              value={selectedHospital}
+              onChange={(e) => setSelectedHospital(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring font-medium"
+            >
+              <option value="">All Hospitals (System-Wide)</option>
+              {hospitals.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.name} ({h.registrationNumber})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* User Table */}

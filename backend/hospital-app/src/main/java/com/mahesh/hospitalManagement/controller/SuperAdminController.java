@@ -55,6 +55,39 @@ public class SuperAdminController {
     }
 
     /**
+     * Updates configuration, metadata, or user quotas for an existing hospital workspace.
+     * 
+     * @param id Hospital UUID.
+     * @param dto Updated hospital details payload.
+     * @return ResponseEntity holding updated SuperAdminHospitalDto.
+     */
+    @PutMapping("/hospitals/{id}")
+    public ResponseEntity<ApiResponse<SuperAdminHospitalDto>> updateHospital(
+            @PathVariable UUID id,
+            @RequestBody SuperAdminHospitalDto dto) {
+        String admin = currentAdmin();
+        SuperAdminHospitalDto updated = superAdminService.updateHospital(id, dto, admin);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Hospital configuration updated successfully"));
+    }
+
+    /**
+     * Provisions a new Admin or Staff user account assigned directly to a specific hospital workspace.
+     * 
+     * @param id Hospital UUID.
+     * @param dto User creation details (username, password, phone, role).
+     * @return ResponseEntity with created SuperAdminUserDto.
+     */
+    @PostMapping("/hospitals/{id}/users")
+    public ResponseEntity<ApiResponse<SuperAdminUserDto>> createHospitalUser(
+            @PathVariable UUID id,
+            @RequestBody CreateUserRequestDto dto) {
+        String admin = currentAdmin();
+        SuperAdminUserDto user = superAdminService.createHospitalUser(id, dto, admin);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(user, "Hospital user provisioned successfully"));
+    }
+
+    /**
      * Retrieves a list of all registered hospital tenants.
      * 
      * @return ResponseEntity with list of SuperAdminHospitalDto records.
@@ -186,6 +219,7 @@ public class SuperAdminController {
      * Paginated search for users across all hospital tenants.
      * 
      * @param search Search query string.
+     * @param hospitalId Optional hospital tenant filter UUID.
      * @param page Page index.
      * @param size Page size.
      * @return ResponseEntity containing user search results page.
@@ -193,9 +227,28 @@ public class SuperAdminController {
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<Page<SuperAdminUserDto>>> searchUsers(
             @RequestParam(defaultValue = "") String search,
+            @RequestParam(required = false) UUID hospitalId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(superAdminService.searchUsers(search, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(superAdminService.searchUsers(search, hospitalId, page, size)));
+    }
+
+    /**
+     * Paginated retrieval of users belonging to a specific hospital tenant.
+     * 
+     * @param id Hospital UUID.
+     * @param search Search query string.
+     * @param page Page index.
+     * @param size Page size.
+     * @return ResponseEntity containing list of users belonging to the specified hospital.
+     */
+    @GetMapping("/hospitals/{id}/users")
+    public ResponseEntity<ApiResponse<Page<SuperAdminUserDto>>> getHospitalUsers(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(ApiResponse.success(superAdminService.searchUsers(search, id, page, size)));
     }
 
     /**

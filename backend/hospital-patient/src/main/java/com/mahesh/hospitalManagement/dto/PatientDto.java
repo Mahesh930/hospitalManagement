@@ -46,6 +46,8 @@ public class PatientDto {
     private String tpaDetails;
     private String qrCodeData;
     private Boolean isEmergency;
+    private UUID hospitalId;
+    private String hospitalName;
     private List<AllergyDto> allergies;
 
     @Data

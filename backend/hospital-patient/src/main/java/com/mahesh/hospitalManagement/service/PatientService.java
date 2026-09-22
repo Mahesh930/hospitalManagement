@@ -1,14 +1,11 @@
 package com.mahesh.hospitalManagement.service;
 
 import com.mahesh.hospitalManagement.dto.PatientDto;
-import com.mahesh.hospitalManagement.entity.Patient;
-import com.mahesh.hospitalManagement.entity.PatientAllergy;
-import com.mahesh.hospitalManagement.entity.type.BloodGroupType;
+import com.mahesh.hospitalManagement.dto.PatientTimelineDto;
+import com.mahesh.hospitalManagement.entity.*;
 import com.mahesh.hospitalManagement.error.BusinessValidationException;
 import com.mahesh.hospitalManagement.error.ResourceNotFoundException;
-import com.mahesh.hospitalManagement.repository.PatientAllergyRepository;
-import com.mahesh.hospitalManagement.repository.PatientRepository;
-import com.mahesh.hospitalManagement.repository.UserRepository;
+import com.mahesh.hospitalManagement.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +22,8 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final PatientAllergyRepository allergyRepository;
     private final UserRepository userRepository;
+    private final VitalSignsRepository vitalSignsRepository;
+    private final OPDConsultationRepository opdConsultationRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
@@ -124,9 +123,21 @@ public class PatientService {
 
     @Transactional(readOnly = true)
     public List<PatientDto> searchPatients(String query) {
-        List<Patient> patients = (query == null || query.isBlank()) 
-                ? patientRepository.findAllActivePatients()
-                : patientRepository.searchPatients(query);
+        return searchPatients(query, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PatientDto> searchPatients(String query, UUID hospitalId) {
+        List<Patient> patients;
+        if (hospitalId != null) {
+            patients = (query == null || query.isBlank())
+                    ? patientRepository.findAllActivePatientsByHospital(hospitalId)
+                    : patientRepository.searchPatientsByHospital(query, hospitalId);
+        } else {
+            patients = (query == null || query.isBlank())
+                    ? patientRepository.findAllActivePatients()
+                    : patientRepository.searchPatients(query);
+        }
         return patients.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -201,7 +212,105 @@ public class PatientService {
                 .tpaDetails(patient.getTpaDetails())
                 .qrCodeData(patient.getQrCodeData())
                 .isEmergency(patient.getIsEmergency())
+                .hospitalId(patient.getHospital() != null ? patient.getHospital().getId() : null)
+                .hospitalName(patient.getHospital() != null ? patient.getHospital().getName() : null)
                 .allergies(allergyDtos)
+                .build();
+    }
+
+    /**
+     * Retrieves the complete longitudinal medical record and chronological encounters for a patient.
+     *
+     * @param patientId Unique UUID of patient.
+     * @return PatientTimelineDto containing allergies, past vitals, and chronological OPD encounters.
+     */
+    @Transactional(readOnly = true)
+    public PatientTimelineDto getPatientLongitudinalTimeline(UUID patientId) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
+
+        List<PatientDto.AllergyDto> allergyDtos = (patient.getAllergies() == null) ? Collections.emptyList() :
+                patient.getAllergies().stream()
+                        .map(a -> PatientDto.AllergyDto.builder()
+                                .id(a.getId())
+                                .allergen(a.getAllergen())
+                                .severity(a.getSeverity())
+                                .reaction(a.getReaction())
+                                .build())
+                        .collect(Collectors.toList());
+
+        List<VitalSigns> vitalsList = vitalSignsRepository.findByPatientIdOrderByRecordedAtDesc(patientId);
+        List<PatientTimelineDto.TimelineVitalDto> vitalDtos = vitalsList.stream()
+                .map(v -> PatientTimelineDto.TimelineVitalDto.builder()
+                        .id(v.getId())
+                        .bloodPressure(v.getBloodPressure())
+                        .pulseRate(v.getPulseRate())
+                        .temperature(v.getTemperature())
+                        .weightKg(v.getWeightKg())
+                        .spo2(v.getSpo2())
+                        .isAbnormal(v.getIsAbnormal())
+                        .recordedAt(v.getRecordedAt() != null ? v.getRecordedAt() : v.getCreatedAt())
+                        .recordedBy(v.getRecordedBy())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<OPDConsultation> consultations = opdConsultationRepository.findByPatientIdOrderByCreatedAtDesc(patientId);
+        List<PatientTimelineDto.TimelineEncounterDto> encounters = consultations.stream()
+                .map(c -> {
+                    List<PatientTimelineDto.TimelinePrescriptionItemDto> rxItems = Collections.emptyList();
+                    String advice = null;
+                    if (c.getPrescription() != null) {
+                        advice = c.getPrescription().getAdvice();
+                        if (c.getPrescription().getItems() != null) {
+                            rxItems = c.getPrescription().getItems().stream()
+                                    .map(item -> PatientTimelineDto.TimelinePrescriptionItemDto.builder()
+                                            .medicineName(item.getMedicineName())
+                                            .dosage(item.getDosage())
+                                            .frequency(item.getFrequency())
+                                            .durationDays(item.getDurationDays())
+                                            .instructions(item.getInstructions())
+                                            .build())
+                                    .collect(Collectors.toList());
+                        }
+                    }
+
+                    String docName = (c.getDoctor() != null) ? c.getDoctor().getName() : "Attending Doctor";
+                    String deptName = (c.getDoctor() != null && c.getDoctor().getSpecialization() != null)
+                            ? c.getDoctor().getSpecialization() : "General OPD";
+
+                    return PatientTimelineDto.TimelineEncounterDto.builder()
+                            .encounterId(c.getId())
+                            .appointmentId(c.getAppointment() != null ? c.getAppointment().getId() : null)
+                            .encounterDate(c.getCreatedAt())
+                            .visitType("OPD")
+                            .doctorName(docName)
+                            .departmentName(deptName)
+                            .icdCode(c.getIcdCode())
+                            .diagnosisNotes(c.getDiagnosisNotes())
+                            .advice(advice)
+                            .status(c.getStatus())
+                            .bloodPressure(c.getBloodPressure())
+                            .pulseRate(c.getPulseRate())
+                            .temperature(c.getTemperature())
+                            .weight(c.getWeight())
+                            .prescriptionItems(rxItems)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PatientTimelineDto.builder()
+                .patientId(patient.getId())
+                .uhid(patient.getUhid())
+                .name(patient.getName())
+                .age(patient.getAge())
+                .gender(patient.getGender())
+                .bloodGroup(formatBloodGroup(patient.getBloodGroup()))
+                .phone(patient.getPhone())
+                .existingDiseases(patient.getExistingDiseases())
+                .previousSurgeries(patient.getPreviousSurgeries())
+                .allergies(allergyDtos)
+                .recentVitals(vitalDtos)
+                .encounters(encounters)
                 .build();
     }
 

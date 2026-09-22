@@ -41,6 +41,17 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     @Query("SELECT p FROM Patient p WHERE p.deletedAt IS NULL ORDER BY p.createdAt DESC")
     List<Patient> findAllActivePatients();
 
+    @Query("SELECT p FROM Patient p WHERE p.deletedAt IS NULL AND p.hospital.id = :hospitalId ORDER BY p.createdAt DESC")
+    List<Patient> findAllActivePatientsByHospital(@Param("hospitalId") UUID hospitalId);
+
+    @Query("SELECT p FROM Patient p WHERE p.deletedAt IS NULL AND p.hospital.id = :hospitalId AND " +
+            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "p.phone LIKE CONCAT('%', :query, '%') OR " +
+            "LOWER(p.uhid) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "(p.abhaId IS NOT NULL AND LOWER(p.abhaId) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
+            "(p.aadhaar IS NOT NULL AND p.aadhaar LIKE CONCAT('%', :query, '%')))")
+    List<Patient> searchPatientsByHospital(@Param("query") String query, @Param("hospitalId") UUID hospitalId);
+
     List<Patient> findByBirthDateOrEmail(LocalDate birthDate, String email);
 
     @Query("SELECT p FROM Patient p WHERE p.bloodGroup = :bloodGroup AND p.deletedAt IS NULL")

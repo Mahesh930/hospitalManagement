@@ -8,8 +8,11 @@ import Link from "next/link";
 import {
   Activity, LayoutDashboard, Users, CalendarDays, Stethoscope,
   Receipt, Database, Settings, LogOut, ChevronLeft, Menu, Shield,
-  FileSpreadsheet, Sun, Moon, Building2, ToggleLeft, CreditCard, UserCog
+  FileSpreadsheet, Sun, Moon, Building2, ToggleLeft, CreditCard, UserCog,
+  HeartPulse, Bed, Pill
 } from "lucide-react";
+
+import { superAdminApi, SuperAdminHospitalDto } from "@medicore/api";
 
 interface NavItem {
   label: string;
@@ -19,14 +22,17 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PHARMACIST", "PATIENT"] },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PHARMACIST", "PATIENT"] },
+  { label: "Nurse Station", href: "/nurse", icon: HeartPulse, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Wards & Beds", href: "/nurse/beds", icon: Bed, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Medication (eMAR)", href: "/nurse/emar", icon: Pill, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Reception Desk", href: "/reception", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
   { label: "SaaS Hospitals", href: "/super-admin/hospitals", icon: Building2, roles: ["SUPER_ADMIN"] },
   { label: "User Operations", href: "/super-admin/user-operations", icon: UserCog, roles: ["SUPER_ADMIN"] },
   { label: "Feature Flags", href: "/super-admin/feature-flags", icon: ToggleLeft, roles: ["SUPER_ADMIN"] },
   { label: "Subscriptions", href: "/super-admin/subscriptions", icon: CreditCard, roles: ["SUPER_ADMIN"] },
-  { label: "Patients", href: "/patients", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST"] },
-  { label: "Appointments", href: "/appointments", icon: CalendarDays, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"] },
+  { label: "Patients", href: "/patients", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST"] },
+  { label: "Appointments", href: "/appointments", icon: CalendarDays, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PATIENT"] },
   { label: "OPD Consultation", href: "/opd", icon: Stethoscope, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
   { label: "Billing & Invoices", href: "/billing", icon: Receipt, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST", "BILLING"] },
   { label: "Master Data", href: "/master-data/medicines", icon: Database, roles: ["SUPER_ADMIN", "ADMIN"] },
@@ -38,12 +44,13 @@ const ROLE_BADGE_STYLES: Record<string, { label: string; className: string }> = 
   SUPER_ADMIN: { label: "SUPER ADMIN", className: "bg-purple-600/15 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-700" },
   ADMIN: { label: "ADMIN", className: "bg-blue-600/15 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-700" },
   DOCTOR: { label: "DOCTOR", className: "bg-emerald-600/15 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-700" },
+  NURSE: { label: "NURSE", className: "bg-teal-600/15 text-teal-700 border-teal-300 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-700" },
   RECEPTIONIST: { label: "RECEPTION", className: "bg-amber-600/15 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-700" },
   PATIENT: { label: "PATIENT", className: "bg-gray-600/15 text-gray-700 border-gray-300 dark:bg-gray-500/15 dark:text-gray-300 dark:border-gray-600" },
 };
 
 function getPrimaryRoleBadge(roles: string[]) {
-  const priority = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "PATIENT"];
+  const priority = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PATIENT"];
   for (const role of priority) {
     if (roles.includes(role)) return ROLE_BADGE_STYLES[role] ?? ROLE_BADGE_STYLES.PATIENT;
   }
@@ -51,17 +58,39 @@ function getPrimaryRoleBadge(roles: string[]) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { token, username, roles, logout } = useAuthStore();
+  const { token, username, roles, selectedHospitalId, setSelectedHospitalId, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [hospitals, setHospitals] = useState<SuperAdminHospitalDto[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!token) router.push("/login");
-  }, [token, router]);
+    setMounted(true);
+  }, []);
 
-  if (!token) return null;
+  useEffect(() => {
+    if (mounted && !token) router.push("/login");
+  }, [mounted, token, router]);
+
+  useEffect(() => {
+    if (mounted && token && roles.includes("SUPER_ADMIN")) {
+      superAdminApi.getAllHospitals()
+        .then((res) => {
+          setHospitals(res.data?.data || []);
+        })
+        .catch(() => {});
+    }
+  }, [mounted, token, roles]);
+
+  if (!mounted || !token) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background text-foreground">
+        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     logout();
@@ -138,6 +167,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </h2>
 
           <div className="flex items-center gap-3">
+            {/* Global Hospital Context Switcher for Super Admin */}
+            {roles.includes("SUPER_ADMIN") && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-xs font-medium">
+                <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                <span className="text-muted-foreground font-semibold shrink-0">Context:</span>
+                <select
+                  value={selectedHospitalId}
+                  onChange={(e) => setSelectedHospitalId(e.target.value)}
+                  className="bg-transparent text-foreground font-bold focus:outline-none cursor-pointer text-xs max-w-[220px] truncate"
+                >
+                  <option value="ALL" className="bg-card text-foreground font-medium">🏢 All Hospitals (Global View)</option>
+                  {hospitals.map((h) => (
+                    <option key={h.id} value={h.id} className="bg-card text-foreground font-medium">
+                      🏥 {h.name} ({h.registrationNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Role Badge */}
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold tracking-wider ${badge.className}`}>
               <Shield className="w-3 h-3" />

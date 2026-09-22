@@ -20,5 +20,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     List<Appointment> findByDoctorIdAndStatusOrderByQueueOrderAsc(UUID doctorId, String status);
 
+    List<Appointment> findByDoctorIdOrderByAppointmentTimeAsc(UUID doctorId);
+
+    List<Appointment> findByDoctorIdAndAppointmentTimeBetweenOrderByAppointmentTimeAsc(
+            UUID doctorId, LocalDateTime start, LocalDateTime end);
+
     List<Appointment> findByPatientIdOrderByAppointmentTimeDesc(UUID patientId);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.doctor.id = :doctorId AND a.appointmentTime >= :startOfDay AND a.appointmentTime <= :endOfDay AND a.deletedAt IS NULL")
+    long countTodayAppointmentsForDoctor(@Param("doctorId") UUID doctorId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 }

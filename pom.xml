@@ -21,6 +21,7 @@
 		<module>backend/hospital-reception</module>
 		<module>backend/hospital-opd</module>
 		<module>backend/hospital-billing</module>
+		<module>backend/hospital-nurse</module>
 		<module>backend/hospital-app</module>
 	</modules>
 	<url/>

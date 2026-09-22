@@ -1,5 +1,6 @@
 import apiClient from "./client";
 import { ApiResponse } from "./patients";
+import { CreateUserRequestDto, SuperAdminUserDto } from "./superAdmin";
 
 export interface DoctorResponseDto {
   id: string;
@@ -43,6 +44,16 @@ export const adminApi = {
 
   onboardDoctor: async (data: OnboardDoctorRequest): Promise<DoctorResponseDto> => {
     const res = await apiClient.post<ApiResponse<DoctorResponseDto>>("/admin/onBoardNewDoctor", data);
+    return res.data.data;
+  },
+
+  createStaffUser: async (data: CreateUserRequestDto): Promise<SuperAdminUserDto> => {
+    const res = await apiClient.post<ApiResponse<SuperAdminUserDto>>("/admin/users", data);
+    return res.data.data;
+  },
+
+  getStaffUsers: async (): Promise<SuperAdminUserDto[]> => {
+    const res = await apiClient.get<ApiResponse<SuperAdminUserDto[]>>("/admin/users");
     return res.data.data;
   },
 };
