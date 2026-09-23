@@ -102,6 +102,9 @@ export interface PatientDto {
   hospitalId?: string;
   hospitalName?: string;
   allergies?: AllergyDto[];
+  currentWardName?: string;
+  currentBedNumber?: string;
+  admissionStatus?: string;
 }
 
 export const patientsApi = {

@@ -17,4 +17,5 @@ public class CreateUserRequestDto {
     private String phone;
     private String role;
     private UUID hospitalId;
+    private UUID assignedWardId;
 }

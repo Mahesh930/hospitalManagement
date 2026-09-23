@@ -49,6 +49,9 @@ public class PatientDto {
     private UUID hospitalId;
     private String hospitalName;
     private List<AllergyDto> allergies;
+    private String currentWardName;
+    private String currentBedNumber;
+    private String admissionStatus;
 
     @Data
     @Builder

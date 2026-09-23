@@ -24,6 +24,7 @@ public class PatientService {
     private final UserRepository userRepository;
     private final VitalSignsRepository vitalSignsRepository;
     private final OPDConsultationRepository opdConsultationRepository;
+    private final BedAdmissionRepository bedAdmissionRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
@@ -109,6 +110,12 @@ public class PatientService {
 
     @Transactional(readOnly = true)
     public PatientDto getPatientById(UUID id) {
+        return getPatientById(id, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PatientDto getPatientById(UUID id, String currentUser) {
+        validateNursePatientAccess(id, currentUser);
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + id));
         return mapToDto(patient);
@@ -116,6 +123,12 @@ public class PatientService {
 
     @Transactional(readOnly = true)
     public PatientDto getPatientByUhid(String uhid) {
+        return getPatientByUhid(uhid, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PatientDto getPatientByUhid(String uhid, String currentUser) {
+        validateNursePatientAccessByUhid(uhid, currentUser);
         Patient patient = patientRepository.findByUhid(uhid)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with UHID: " + uhid));
         return mapToDto(patient);
@@ -123,11 +136,51 @@ public class PatientService {
 
     @Transactional(readOnly = true)
     public List<PatientDto> searchPatients(String query) {
-        return searchPatients(query, null);
+        return searchPatients(query, null, null);
     }
 
     @Transactional(readOnly = true)
     public List<PatientDto> searchPatients(String query, UUID hospitalId) {
+        return searchPatients(query, hospitalId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PatientDto> searchPatients(String query, UUID hospitalId, String currentUser) {
+        if (isRestrictedNurse(currentUser)) {
+            Ward ward = getNurseAssignedWard(currentUser);
+            List<BedAdmission> activeAdmissions;
+            if (ward != null) {
+                activeAdmissions = bedAdmissionRepository.findActiveAdmissionsByWard(ward.getId());
+            } else {
+                activeAdmissions = bedAdmissionRepository.findAllActiveAdmissions();
+            }
+
+            String q = (query != null) ? query.trim().toLowerCase() : "";
+
+            return activeAdmissions.stream()
+                    .filter(ba -> ba.getPatient() != null && ba.getPatient().getDeletedAt() == null)
+                    .filter(ba -> {
+                        if (q.isEmpty()) return true;
+                        Patient p = ba.getPatient();
+                        boolean nameMatch = p.getName() != null && p.getName().toLowerCase().contains(q);
+                        boolean phoneMatch = p.getPhone() != null && p.getPhone().contains(q);
+                        boolean uhidMatch = p.getUhid() != null && p.getUhid().toLowerCase().contains(q);
+                        return nameMatch || phoneMatch || uhidMatch;
+                    })
+                    .map(ba -> {
+                        PatientDto dto = mapToDto(ba.getPatient());
+                        if (ba.getBed() != null) {
+                            dto.setCurrentBedNumber(ba.getBed().getBedNumber());
+                            if (ba.getBed().getWard() != null) {
+                                dto.setCurrentWardName(ba.getBed().getWard().getName());
+                            }
+                        }
+                        dto.setAdmissionStatus(ba.getStatus());
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+        }
+
         List<Patient> patients;
         if (hospitalId != null) {
             patients = (query == null || query.isBlank())
@@ -141,6 +194,68 @@ public class PatientService {
         return patients.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isRestrictedNurse(String username) {
+        if (username == null || username.isBlank()) return false;
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) return false;
+        User user = userOpt.get();
+        Set<com.mahesh.hospitalManagement.entity.type.RoleType> roles = user.getRoles();
+        if (roles == null) return false;
+        if (roles.contains(com.mahesh.hospitalManagement.entity.type.RoleType.SUPER_ADMIN)
+                || roles.contains(com.mahesh.hospitalManagement.entity.type.RoleType.ADMIN)
+                || roles.contains(com.mahesh.hospitalManagement.entity.type.RoleType.RECEPTIONIST)) {
+            return false;
+        }
+        return roles.contains(com.mahesh.hospitalManagement.entity.type.RoleType.NURSE);
+    }
+
+    private Ward getNurseAssignedWard(String username) {
+        return userRepository.findByUsername(username)
+                .map(User::getAssignedWard)
+                .orElse(null);
+    }
+
+    private void validateNursePatientAccess(UUID patientId, String username) {
+        if (!isRestrictedNurse(username)) return;
+
+        Ward ward = getNurseAssignedWard(username);
+        boolean isAdmittedInWard;
+        if (ward != null) {
+            isAdmittedInWard = bedAdmissionRepository
+                    .findActiveAdmissionByPatientAndWard(patientId, ward.getId())
+                    .isPresent();
+        } else {
+            isAdmittedInWard = bedAdmissionRepository
+                    .findByPatientIdAndStatusAndDeletedAtIsNull(patientId, "ADMITTED")
+                    .isPresent();
+        }
+
+        if (!isAdmittedInWard) {
+            throw new BusinessValidationException("Access Denied: Patient is no longer admitted in your assigned ward or has been discharged.");
+        }
+    }
+
+    private void validateNursePatientAccessByUhid(String uhid, String username) {
+        if (!isRestrictedNurse(username)) return;
+
+        Ward ward = getNurseAssignedWard(username);
+        boolean isAdmittedInWard;
+        if (ward != null) {
+            isAdmittedInWard = bedAdmissionRepository
+                    .findActiveAdmissionByPatientUhidAndWard(uhid, ward.getId())
+                    .isPresent();
+        } else {
+            Patient p = patientRepository.findByUhid(uhid).orElse(null);
+            isAdmittedInWard = p != null && bedAdmissionRepository
+                    .findByPatientIdAndStatusAndDeletedAtIsNull(p.getId(), "ADMITTED")
+                    .isPresent();
+        }
+
+        if (!isAdmittedInWard) {
+            throw new BusinessValidationException("Access Denied: Patient is no longer admitted in your assigned ward or has been discharged.");
+        }
     }
 
     @Transactional
@@ -226,6 +341,12 @@ public class PatientService {
      */
     @Transactional(readOnly = true)
     public PatientTimelineDto getPatientLongitudinalTimeline(UUID patientId) {
+        return getPatientLongitudinalTimeline(patientId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PatientTimelineDto getPatientLongitudinalTimeline(UUID patientId, String currentUser) {
+        validateNursePatientAccess(patientId, currentUser);
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
 

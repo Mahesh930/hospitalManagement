@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.mahesh.hospitalManagement.entity.Doctor;
+import com.mahesh.hospitalManagement.entity.Ward;
 import java.util.UUID;
 
 @Service
@@ -36,6 +37,7 @@ public class AdminService {
     private final AppointmentRepository appointmentRepository;
     private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
+    private final WardRepository wardRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
@@ -109,6 +111,11 @@ public class AdminService {
             }
         }
 
+        Ward assignedWard = null;
+        if (dto.getAssignedWardId() != null) {
+            assignedWard = wardRepository.findById(dto.getAssignedWardId()).orElse(null);
+        }
+
         User staffUser = User.builder()
                 .username(cleanUsername)
                 .password(passwordEncoder.encode(dto.getPassword().trim()))
@@ -116,6 +123,7 @@ public class AdminService {
                 .providerType(AuthProviderType.EMAIL)
                 .hospital(currentUser.getHospital())
                 .roles(Set.of(role))
+                .assignedWard(assignedWard)
                 .build();
 
         staffUser = userRepository.save(staffUser);
@@ -178,6 +186,8 @@ public class AdminService {
                 .locked(locked)
                 .hospitalId(user.getHospital() != null ? user.getHospital().getId() : null)
                 .hospitalName(user.getHospital() != null ? user.getHospital().getName() : "Platform")
+                .assignedWardId(user.getAssignedWard() != null ? user.getAssignedWard().getId() : null)
+                .assignedWardName(user.getAssignedWard() != null ? user.getAssignedWard().getName() : null)
                 .build();
     }
 }

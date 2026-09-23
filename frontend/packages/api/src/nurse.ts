@@ -102,6 +102,158 @@ export interface NursingNoteDto {
   recordedAt?: string;
 }
 
+export interface FluidBalanceDto {
+  id?: string;
+  patientId: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  recordType: "INTAKE" | "OUTPUT";
+  subCategory: string; // ORAL, IV_FLUID, TUBE_FEED, BLOOD_PRODUCT, URINE, SURGICAL_DRAIN, VOMIT, NG_ASPIRATE, OTHER
+  amountMl: number;
+  recordedAt?: string;
+  recordedBy?: string;
+  notes?: string;
+}
+
+export interface FluidBalanceSummaryDto {
+  patientId: string;
+  patientName: string;
+  patientUhid: string;
+  totalIntakeMl: number;
+  totalOutputMl: number;
+  netBalanceMl: number;
+  isFluidOverloadRisk: boolean;
+  recentRecords: FluidBalanceDto[];
+}
+
+export interface NursingCareRecordDto {
+  id?: string;
+  patientId: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  careType: string; // WOUND_DRESSING, CATHETER_CARE, IV_LINE_MONITORING, DRAIN_CARE, REPOSITIONING, HYGIENE_CARE, OXYGEN_THERAPY, NEBULIZATION, BLOOD_TRANSFUSION
+  siteOrDevice?: string;
+  statusOrCondition?: string;
+  details?: string;
+  performedBy?: string;
+  performedAt?: string;
+}
+
+export interface NursingTaskDto {
+  id?: string;
+  patientId: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  wardId?: string;
+  wardName?: string;
+  taskTitle: string;
+  description?: string;
+  taskType: string; // MEDICATION, VITALS_CHECK, DRESSING, LAB_COLLECTION, DOCTOR_ORDER, GENERAL_CARE, ASSESSMENT
+  priority: "ROUTINE" | "URGENT" | "STAT";
+  scheduledAt?: string;
+  dueAt?: string;
+  status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  assignedNurse?: string;
+  completedBy?: string;
+  completedAt?: string;
+  completionNotes?: string;
+}
+
+export interface ClinicalEscalationDto {
+  id?: string;
+  patientId: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  wardId?: string;
+  wardName?: string;
+  severity: "ROUTINE" | "URGENT" | "CRITICAL";
+  triggerReason: string; // ABNORMAL_VITALS, PATIENT_DETERIORATION, ADVERSE_REACTION, EMERGENCY_CODE
+  clinicalNotes: string;
+  escalatedBy?: string;
+  escalatedAt?: string;
+  attendingDoctorName?: string;
+  isAcknowledged?: boolean;
+  acknowledgedByDoctor?: string;
+  acknowledgedAt?: string;
+  doctorResponseNotes?: string;
+}
+
+export interface NursingAssessmentDto {
+  id?: string;
+  patientId: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  assessmentType: string; // FALL_RISK_MORSE, PRESSURE_ULCER_BRADEN, MOBILITY_ASSESSMENT, PRE_OP_CHECKLIST, DISCHARGE_CHECKLIST, INFECTION_CONTROL
+  totalScore?: number;
+  riskLevel?: string; // LOW, MODERATE, HIGH, CRITICAL, VERY_HIGH, MILD, NO_RISK
+  findingsJson?: string;
+  clinicalSummary?: string;
+  assessedBy?: string;
+  assessedAt?: string;
+}
+
+export interface NursingIncidentDto {
+  id?: string;
+  patientId?: string;
+  patientName?: string;
+  patientUhid?: string;
+  bedAdmissionId?: string;
+  wardId?: string;
+  wardName?: string;
+  incidentType: string; // PATIENT_FALL, MEDICATION_ERROR, EQUIPMENT_FAILURE, ADVERSE_DRUG_REACTION, INJURY, OTHER
+  severity: "NEAR_MISS" | "MINOR" | "MODERATE" | "SEVERE";
+  incidentTime?: string;
+  description: string;
+  immediateActionTaken?: string;
+  reportedBy?: string;
+  reportedAt?: string;
+  investigationStatus?: string;
+  resolutionNotes?: string;
+}
+
+export interface ShiftHandoverReportDto {
+  id?: string;
+  wardId?: string;
+  wardName?: string;
+  shiftType: "MORNING" | "EVENING" | "NIGHT";
+  shiftDate?: string;
+  outgoingNurse?: string;
+  incomingNurse?: string;
+  totalInpatients?: number;
+  criticalPatientsCount?: number;
+  handoverSummary: string;
+  pendingTasksSummary?: string;
+  handoverTime?: string;
+}
+
+export interface InpatientSummaryDto {
+  patientId: string;
+  name: string;
+  uhid: string;
+  gender?: string;
+  bloodGroup?: string;
+  age?: number;
+  bedAdmissionId?: string;
+  currentWardName?: string;
+  currentBedNumber?: string;
+  admissionStatus?: string;
+  admittingDoctorName?: string;
+  reasonForAdmission?: string;
+  allergies?: string[];
+  latestVitals?: VitalSignsDto;
+  fluidBalanceSummary?: FluidBalanceSummaryDto;
+  pendingMedications?: MedicationAdministrationDto[];
+  activeTasks?: NursingTaskDto[];
+  latestRiskAssessments?: NursingAssessmentDto[];
+  activeEscalations?: ClinicalEscalationDto[];
+  recentNotes?: NursingNoteDto[];
+}
+
 export const nurseApi = {
   getDashboardStats: async (): Promise<ApiResponse<NurseDashboardDto>> => {
     const res = await apiClient.get<ApiResponse<NurseDashboardDto>>("/api/v1/nurses/dashboard");
@@ -194,6 +346,115 @@ export const nurseApi = {
 
   getPatientNursingNotes: async (patientId: string): Promise<ApiResponse<NursingNoteDto[]>> => {
     const res = await apiClient.get<ApiResponse<NursingNoteDto[]>>(`/api/v1/nurses/notes/patient/${patientId}`);
+    return res.data;
+  },
+
+  getAssignedWard: async (): Promise<ApiResponse<WardDto>> => {
+    const res = await apiClient.get<ApiResponse<WardDto>>("/api/v1/nurses/assigned-ward");
+    return res.data;
+  },
+
+  setAssignedWard: async (wardId: string): Promise<ApiResponse<WardDto>> => {
+    const res = await apiClient.patch<ApiResponse<WardDto>>("/api/v1/nurses/assigned-ward", null, {
+      params: { wardId },
+    });
+    return res.data;
+  },
+
+  recordFluidBalance: async (dto: FluidBalanceDto): Promise<ApiResponse<FluidBalanceDto>> => {
+    const res = await apiClient.post<ApiResponse<FluidBalanceDto>>("/api/v1/nurses/fluid-balance", dto);
+    return res.data;
+  },
+
+  getFluidBalanceSummary: async (patientId: string): Promise<ApiResponse<FluidBalanceSummaryDto>> => {
+    const res = await apiClient.get<ApiResponse<FluidBalanceSummaryDto>>(`/api/v1/nurses/fluid-balance/patient/${patientId}`);
+    return res.data;
+  },
+
+  recordBedsideCare: async (dto: NursingCareRecordDto): Promise<ApiResponse<NursingCareRecordDto>> => {
+    const res = await apiClient.post<ApiResponse<NursingCareRecordDto>>("/api/v1/nurses/bedside-care", dto);
+    return res.data;
+  },
+
+  getPatientBedsideCareHistory: async (patientId: string): Promise<ApiResponse<NursingCareRecordDto[]>> => {
+    const res = await apiClient.get<ApiResponse<NursingCareRecordDto[]>>(`/api/v1/nurses/bedside-care/patient/${patientId}`);
+    return res.data;
+  },
+
+  getWardTasks: async (wardId?: string): Promise<ApiResponse<NursingTaskDto[]>> => {
+    const res = await apiClient.get<ApiResponse<NursingTaskDto[]>>("/api/v1/nurses/tasks", {
+      params: wardId ? { wardId } : undefined,
+    });
+    return res.data;
+  },
+
+  createNursingTask: async (dto: NursingTaskDto): Promise<ApiResponse<NursingTaskDto>> => {
+    const res = await apiClient.post<ApiResponse<NursingTaskDto>>("/api/v1/nurses/tasks", dto);
+    return res.data;
+  },
+
+  completeNursingTask: async (taskId: string, completionNotes?: string): Promise<ApiResponse<NursingTaskDto>> => {
+    const res = await apiClient.patch<ApiResponse<NursingTaskDto>>(`/api/v1/nurses/tasks/${taskId}/complete`, null, {
+      params: completionNotes ? { completionNotes } : undefined,
+    });
+    return res.data;
+  },
+
+  createClinicalEscalation: async (dto: ClinicalEscalationDto): Promise<ApiResponse<ClinicalEscalationDto>> => {
+    const res = await apiClient.post<ApiResponse<ClinicalEscalationDto>>("/api/v1/nurses/escalations", dto);
+    return res.data;
+  },
+
+  getWardEscalations: async (wardId?: string): Promise<ApiResponse<ClinicalEscalationDto[]>> => {
+    const res = await apiClient.get<ApiResponse<ClinicalEscalationDto[]>>("/api/v1/nurses/escalations", {
+      params: wardId ? { wardId } : undefined,
+    });
+    return res.data;
+  },
+
+  acknowledgeEscalation: async (escalationId: string, doctorResponse?: string): Promise<ApiResponse<ClinicalEscalationDto>> => {
+    const res = await apiClient.patch<ApiResponse<ClinicalEscalationDto>>(`/api/v1/nurses/escalations/${escalationId}/acknowledge`, null, {
+      params: doctorResponse ? { doctorResponse } : undefined,
+    });
+    return res.data;
+  },
+
+  recordAssessment: async (dto: NursingAssessmentDto): Promise<ApiResponse<NursingAssessmentDto>> => {
+    const res = await apiClient.post<ApiResponse<NursingAssessmentDto>>("/api/v1/nurses/assessments", dto);
+    return res.data;
+  },
+
+  getPatientAssessments: async (patientId: string): Promise<ApiResponse<NursingAssessmentDto[]>> => {
+    const res = await apiClient.get<ApiResponse<NursingAssessmentDto[]>>(`/api/v1/nurses/assessments/patient/${patientId}`);
+    return res.data;
+  },
+
+  reportIncident: async (dto: NursingIncidentDto): Promise<ApiResponse<NursingIncidentDto>> => {
+    const res = await apiClient.post<ApiResponse<NursingIncidentDto>>("/api/v1/nurses/incidents", dto);
+    return res.data;
+  },
+
+  getWardIncidents: async (wardId?: string): Promise<ApiResponse<NursingIncidentDto[]>> => {
+    const res = await apiClient.get<ApiResponse<NursingIncidentDto[]>>("/api/v1/nurses/incidents", {
+      params: wardId ? { wardId } : undefined,
+    });
+    return res.data;
+  },
+
+  createShiftHandover: async (dto: ShiftHandoverReportDto): Promise<ApiResponse<ShiftHandoverReportDto>> => {
+    const res = await apiClient.post<ApiResponse<ShiftHandoverReportDto>>("/api/v1/nurses/handovers", dto);
+    return res.data;
+  },
+
+  getWardHandovers: async (wardId?: string): Promise<ApiResponse<ShiftHandoverReportDto[]>> => {
+    const res = await apiClient.get<ApiResponse<ShiftHandoverReportDto[]>>("/api/v1/nurses/handovers", {
+      params: wardId ? { wardId } : undefined,
+    });
+    return res.data;
+  },
+
+  getInpatientSummary: async (patientId: string): Promise<ApiResponse<InpatientSummaryDto>> => {
+    const res = await apiClient.get<ApiResponse<InpatientSummaryDto>>(`/api/v1/nurses/inpatient-summary/${patientId}`);
     return res.data;
   },
 };

@@ -9,7 +9,7 @@ import {
   Activity, LayoutDashboard, Users, CalendarDays, Stethoscope,
   Receipt, Database, Settings, LogOut, ChevronLeft, Menu, Shield,
   FileSpreadsheet, Sun, Moon, Building2, ToggleLeft, CreditCard, UserCog,
-  HeartPulse, Bed, Pill
+  HeartPulse, Bed, Pill, Droplets, BellRing, ClipboardCheck
 } from "lucide-react";
 
 import { superAdminApi, SuperAdminHospitalDto } from "@medicore/api";
@@ -26,6 +26,10 @@ const allNavItems: NavItem[] = [
   { label: "Nurse Station", href: "/nurse", icon: HeartPulse, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Wards & Beds", href: "/nurse/beds", icon: Bed, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Medication (eMAR)", href: "/nurse/emar", icon: Pill, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Fluid Balance (I/O)", href: "/nurse/fluid-balance", icon: Droplets, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Tasks & Escalation", href: "/nurse/tasks", icon: BellRing, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Clinical Assessments", href: "/nurse/assessments", icon: ClipboardCheck, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
+  { label: "Shift Handover", href: "/nurse/handover", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Reception Desk", href: "/reception", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
   { label: "SaaS Hospitals", href: "/super-admin/hospitals", icon: Building2, roles: ["SUPER_ADMIN"] },
   { label: "User Operations", href: "/super-admin/user-operations", icon: UserCog, roles: ["SUPER_ADMIN"] },

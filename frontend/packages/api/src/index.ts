@@ -39,5 +39,14 @@ export type {
   BedAdmissionDto,
   MedicationAdministrationRequestDto,
   MedicationAdministrationDto,
-  NursingNoteDto
+  NursingNoteDto,
+  FluidBalanceDto,
+  FluidBalanceSummaryDto,
+  NursingCareRecordDto,
+  NursingTaskDto,
+  ClinicalEscalationDto,
+  NursingAssessmentDto,
+  NursingIncidentDto,
+  ShiftHandoverReportDto,
+  InpatientSummaryDto
 } from "./nurse";

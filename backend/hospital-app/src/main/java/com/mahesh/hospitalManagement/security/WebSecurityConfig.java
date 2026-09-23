@@ -64,11 +64,15 @@ public class WebSecurityConfig {
                         })
                         .successHandler(oAuth2SuccessHandler)
                 )
-                // Configure custom exception handling for access denial
+                // Configure custom exception handling for authentication and access denial
                 .exceptionHandling(exceptionHandlingConfigurer ->
-                    exceptionHandlingConfigurer.accessDeniedHandler((request, response, accessDeniedException) ->{
-                        handlerExceptionResolver.resolveException(request,response,null,accessDeniedException);
-                    }));
+                    exceptionHandlingConfigurer
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            handlerExceptionResolver.resolveException(request, response, null, authException);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            handlerExceptionResolver.resolveException(request, response, null, accessDeniedException);
+                        }));
 
         return httpSecurity.build();
     }

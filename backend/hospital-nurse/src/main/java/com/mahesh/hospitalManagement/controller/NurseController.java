@@ -24,7 +24,7 @@ import java.util.UUID;
  * 5. Clinical nursing progress notes and shift handover logs.
  */
 @RestController
-@RequestMapping("/api/v1/nurses")
+@RequestMapping({"/nurses", "/api/v1/nurses"})
 @RequiredArgsConstructor
 public class NurseController {
 
@@ -213,5 +213,206 @@ public class NurseController {
             @PathVariable UUID patientId) {
         List<NursingNoteDto> notes = nurseService.getPatientNursingNotes(patientId);
         return ResponseEntity.ok(ApiResponse.success(notes, "Nursing notes retrieved"));
+    }
+
+    /**
+     * Retrieves the assigned ward of the logged-in nurse.
+     */
+    @GetMapping("/assigned-ward")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<WardDto>> getAssignedWard() {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        WardDto ward = nurseService.getAssignedWard(currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(ward, "Nurse assigned ward retrieved"));
+    }
+
+    /**
+     * Updates or assigns the active ward for the logged-in nurse.
+     */
+    @PatchMapping("/assigned-ward")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<WardDto>> setAssignedWard(@RequestParam UUID wardId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        WardDto ward = nurseService.setAssignedWard(currentNurse, wardId);
+        return ResponseEntity.ok(ApiResponse.success(ward, "Nurse assigned ward updated successfully"));
+    }
+
+    // ==========================================
+    // 1. FLUID BALANCE & INTAKE / OUTPUT (I/O)
+    // ==========================================
+
+    @PostMapping("/fluid-balance")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<FluidBalanceDto>> recordFluidBalance(@RequestBody FluidBalanceDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        FluidBalanceDto saved = nurseService.recordFluidBalance(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Fluid balance entry recorded successfully"));
+    }
+
+    @GetMapping("/fluid-balance/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<FluidBalanceSummaryDto>> getFluidBalanceSummary(@PathVariable UUID patientId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        FluidBalanceSummaryDto summary = nurseService.getFluidBalanceSummary(patientId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Fluid balance summary retrieved"));
+    }
+
+    // ==========================================
+    // 2. SPECIALIZED BEDSIDE & WOUND CARE
+    // ==========================================
+
+    @PostMapping("/bedside-care")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<NursingCareRecordDto>> recordBedsideCare(@RequestBody NursingCareRecordDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        NursingCareRecordDto saved = nurseService.recordBedsideCare(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Bedside care procedure logged successfully"));
+    }
+
+    @GetMapping("/bedside-care/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<NursingCareRecordDto>>> getPatientBedsideCareHistory(@PathVariable UUID patientId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<NursingCareRecordDto> history = nurseService.getPatientBedsideCareHistory(patientId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(history, "Bedside care history retrieved"));
+    }
+
+    // ==========================================
+    // 3. NURSING TASKS & WORKLOAD
+    // ==========================================
+
+    @GetMapping("/tasks")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<NursingTaskDto>>> getWardTasks(@RequestParam(required = false) UUID wardId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<NursingTaskDto> tasks = nurseService.getWardTasks(wardId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(tasks, "Nursing tasks retrieved"));
+    }
+
+    @PostMapping("/tasks")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<NursingTaskDto>> createNursingTask(@RequestBody NursingTaskDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        NursingTaskDto saved = nurseService.createNursingTask(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Nursing task scheduled successfully"));
+    }
+
+    @PatchMapping("/tasks/{taskId}/complete")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<NursingTaskDto>> completeNursingTask(
+            @PathVariable UUID taskId,
+            @RequestParam(required = false) String completionNotes) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        NursingTaskDto completed = nurseService.completeNursingTask(taskId, completionNotes, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(completed, "Nursing task marked as completed"));
+    }
+
+    // ==========================================
+    // 4. DOCTOR NOTIFICATION & CLINICAL ESCALATION
+    // ==========================================
+
+    @PostMapping("/escalations")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<ClinicalEscalationDto>> createClinicalEscalation(@RequestBody ClinicalEscalationDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        ClinicalEscalationDto saved = nurseService.createClinicalEscalation(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Clinical escalation alert broadcast to doctor"));
+    }
+
+    @GetMapping("/escalations")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<ClinicalEscalationDto>>> getWardEscalations(@RequestParam(required = false) UUID wardId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<ClinicalEscalationDto> alerts = nurseService.getWardEscalations(wardId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(alerts, "Clinical escalations retrieved"));
+    }
+
+    @PatchMapping("/escalations/{escalationId}/acknowledge")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<ClinicalEscalationDto>> acknowledgeEscalation(
+            @PathVariable UUID escalationId,
+            @RequestParam(required = false) String doctorResponse) {
+        String doctorName = SecurityContextHolder.getContext().getAuthentication().getName();
+        ClinicalEscalationDto acknowledged = nurseService.acknowledgeEscalation(escalationId, doctorResponse, doctorName);
+        return ResponseEntity.ok(ApiResponse.success(acknowledged, "Clinical escalation acknowledged by doctor"));
+    }
+
+    // ==========================================
+    // 5. CLINICAL RISK ASSESSMENTS & CHECKLISTS
+    // ==========================================
+
+    @PostMapping("/assessments")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<NursingAssessmentDto>> recordAssessment(@RequestBody NursingAssessmentDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        NursingAssessmentDto saved = nurseService.recordAssessment(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Clinical assessment saved successfully"));
+    }
+
+    @GetMapping("/assessments/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<NursingAssessmentDto>>> getPatientAssessments(@PathVariable UUID patientId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<NursingAssessmentDto> list = nurseService.getPatientAssessments(patientId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(list, "Patient clinical assessments retrieved"));
+    }
+
+    // ==========================================
+    // 6. HOSPITAL INCIDENT REPORTING
+    // ==========================================
+
+    @PostMapping("/incidents")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<NursingIncidentDto>> reportIncident(@RequestBody NursingIncidentDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        NursingIncidentDto saved = nurseService.reportIncident(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Incident report submitted successfully"));
+    }
+
+    @GetMapping("/incidents")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<NursingIncidentDto>>> getWardIncidents(@RequestParam(required = false) UUID wardId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<NursingIncidentDto> incidents = nurseService.getWardIncidents(wardId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(incidents, "Incident reports retrieved"));
+    }
+
+    // ==========================================
+    // 7. SHIFT HANDOVER REPORTS
+    // ==========================================
+
+    @PostMapping("/handovers")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN')")
+    public ResponseEntity<ApiResponse<ShiftHandoverReportDto>> createShiftHandover(@RequestBody ShiftHandoverReportDto dto) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        ShiftHandoverReportDto saved = nurseService.createShiftHandover(dto, currentNurse);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(saved, "Shift handover report submitted successfully"));
+    }
+
+    @GetMapping("/handovers")
+    @PreAuthorize("hasAnyRole('NURSE', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<ShiftHandoverReportDto>>> getWardHandovers(@RequestParam(required = false) UUID wardId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<ShiftHandoverReportDto> handovers = nurseService.getWardHandovers(wardId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(handovers, "Shift handover reports retrieved"));
+    }
+
+    // ==========================================
+    // 8. CONSOLIDATED INPATIENT CLINICAL SUMMARY
+    // ==========================================
+
+    @GetMapping("/inpatient-summary/{patientId}")
+    @PreAuthorize("hasAnyRole('NURSE', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<InpatientSummaryDto>> getInpatientSummary(@PathVariable UUID patientId) {
+        String currentNurse = SecurityContextHolder.getContext().getAuthentication().getName();
+        InpatientSummaryDto summary = nurseService.getInpatientSummary(patientId, currentNurse);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Inpatient clinical summary retrieved"));
     }
 }

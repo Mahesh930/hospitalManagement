@@ -92,4 +92,99 @@ public interface NurseService {
      * Retrieves clinical nursing notes for a patient.
      */
     List<NursingNoteDto> getPatientNursingNotes(UUID patientId);
+
+    /**
+     * Retrieves the assigned ward of the logged-in nurse.
+     */
+    WardDto getAssignedWard(String nurseName);
+
+    /**
+     * Updates/assigns the active ward for the nurse.
+     */
+    WardDto setAssignedWard(String nurseName, UUID wardId);
+
+    /**
+     * Records Intake or Output fluid balance for an inpatient.
+     */
+    FluidBalanceDto recordFluidBalance(FluidBalanceDto dto, String nurseName);
+
+    /**
+     * Retrieves 24-hour Intake/Output summary and net balance for an inpatient.
+     */
+    FluidBalanceSummaryDto getFluidBalanceSummary(UUID patientId, String nurseName);
+
+    /**
+     * Logs bedside care procedures (wound care, catheter, IV line, repositioning, hygiene).
+     */
+    NursingCareRecordDto recordBedsideCare(NursingCareRecordDto dto, String nurseName);
+
+    /**
+     * Retrieves bedside care history for an inpatient.
+     */
+    List<NursingCareRecordDto> getPatientBedsideCareHistory(UUID patientId, String nurseName);
+
+    /**
+     * Retrieves nursing tasks for a ward.
+     */
+    List<NursingTaskDto> getWardTasks(UUID wardId, String nurseName);
+
+    /**
+     * Creates a new nursing task or schedule order.
+     */
+    NursingTaskDto createNursingTask(NursingTaskDto dto, String nurseName);
+
+    /**
+     * Marks a nursing task as completed with completion notes.
+     */
+    NursingTaskDto completeNursingTask(UUID taskId, String completionNotes, String nurseName);
+
+    /**
+     * Raises a clinical escalation or urgent doctor alert.
+     */
+    ClinicalEscalationDto createClinicalEscalation(ClinicalEscalationDto dto, String nurseName);
+
+    /**
+     * Retrieves active clinical escalations for a ward.
+     */
+    List<ClinicalEscalationDto> getWardEscalations(UUID wardId, String nurseName);
+
+    /**
+     * Acknowledges and responds to a clinical escalation by a doctor.
+     */
+    ClinicalEscalationDto acknowledgeEscalation(UUID escalationId, String doctorResponse, String doctorName);
+
+    /**
+     * Records a standardized risk assessment (Morse Fall, Braden Scale, Checklists).
+     */
+    NursingAssessmentDto recordAssessment(NursingAssessmentDto dto, String nurseName);
+
+    /**
+     * Retrieves standardized assessments for a patient.
+     */
+    List<NursingAssessmentDto> getPatientAssessments(UUID patientId, String nurseName);
+
+    /**
+     * Logs a hospital/clinical incident report.
+     */
+    NursingIncidentDto reportIncident(NursingIncidentDto dto, String nurseName);
+
+    /**
+     * Retrieves incident reports for a ward.
+     */
+    List<NursingIncidentDto> getWardIncidents(UUID wardId, String nurseName);
+
+    /**
+     * Documents an end-of-shift handover report.
+     */
+    ShiftHandoverReportDto createShiftHandover(ShiftHandoverReportDto dto, String nurseName);
+
+    /**
+     * Retrieves shift handover reports for a ward.
+     */
+    List<ShiftHandoverReportDto> getWardHandovers(UUID wardId, String nurseName);
+
+    /**
+     * Retrieves a consolidated clinical inpatient summary for bedside nursing.
+     */
+    InpatientSummaryDto getInpatientSummary(UUID patientId, String nurseName);
 }
