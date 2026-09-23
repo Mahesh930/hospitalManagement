@@ -42,21 +42,27 @@ Open a terminal in the root directory of the project (`d:\Java Spring\hospitalMa
 
 ### Option A: Run directly using Maven Wrapper (Recommended for Dev)
 
-**Windows PowerShell:**
+First, build & install submodules to local repo (one-time or after module changes):
 ```powershell
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd install -DskipTests
+```
+
+Then run the executable application module:
+```powershell
+.\mvnw.cmd spring-boot:run -pl backend/hospital-app
 ```
 
 **Linux / macOS:**
 ```bash
-./mvnw spring-boot:run
+./mvnw install -DskipTests
+./mvnw spring-boot:run -pl backend/hospital-app
 ```
 
-### Option B: Build JAR and Run
+### Option B: Build Monorepo JAR and Run
 
 ```powershell
 .\mvnw.cmd clean package -DskipTests
-java -jar target/hospitalManagement-0.0.1-SNAPSHOT.jar
+java -jar backend/hospital-app/target/hospital-app-0.0.1-SNAPSHOT.jar
 ```
 
 * **Backend Base URL:** `http://localhost:8080`

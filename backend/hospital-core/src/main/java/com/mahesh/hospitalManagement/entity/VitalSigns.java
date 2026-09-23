@@ -40,6 +40,15 @@ public class VitalSigns extends BaseEntity {
     private Double respiratoryRate; // breaths/min
     private Double spo2; // % oxygen saturation
 
+    private Double bloodSugarMgDl; // Random or fasting blood glucose
+    private Integer painScore; // 0 - 10 Wong-Baker pain scale
+
+    @Column(length = 20)
+    private String triagePriority; // GREEN, YELLOW, RED
+
+    @Column(length = 500)
+    private String chiefComplaint;
+
     @Builder.Default
     private Boolean isAbnormal = false;
 

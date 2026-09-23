@@ -20,4 +20,6 @@ public class SuperAdminUserDto {
     private boolean locked;
     private String hospitalName;
     private UUID hospitalId;
+    private UUID assignedWardId;
+    private String assignedWardName;
 }

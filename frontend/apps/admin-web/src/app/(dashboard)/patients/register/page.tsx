@@ -10,9 +10,10 @@
  * 4. Submits payload to POST /patients endpoint, retrieves generated UHID, and navigates to Patient Profile.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { patientsApi, PatientDto, AllergyDto } from "@medicore/api";
+import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { User, Phone, Mail, Calendar, ShieldAlert, Plus, Trash2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +21,15 @@ import Link from "next/link";
 export default function RegisterPatientPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const roles = useAuthStore((s) => s.roles);
+  const isNurseOnly = roles.includes("NURSE") && !roles.includes("ADMIN") && !roles.includes("SUPER_ADMIN") && !roles.includes("RECEPTIONIST");
+
+  useEffect(() => {
+    if (isNurseOnly) {
+      toast.error("Access Denied: Nurses are not authorized to register patients.");
+      router.push("/patients");
+    }
+  }, [isNurseOnly, router]);
 
   // Patient Demographic Fields
   const [name, setName] = useState("");

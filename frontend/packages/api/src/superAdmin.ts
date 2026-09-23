@@ -61,6 +61,14 @@ export interface PageResponse<T> {
   number: number;
 }
 
+export interface CreateUserRequestDto {
+  username: string;
+  password: string;
+  phone?: string;
+  role?: string;
+  hospitalId?: string;
+}
+
 export const superAdminApi = {
   // Hospital
   getAllHospitals: () =>
@@ -73,6 +81,17 @@ export const superAdminApi = {
 
   onboardHospital: (data: SuperAdminHospitalDto) =>
     apiClient.post<ApiResponse<SuperAdminHospitalDto>>("/super-admin/hospitals/onboard", data),
+
+  updateHospital: (id: string, data: SuperAdminHospitalDto) =>
+    apiClient.put<ApiResponse<SuperAdminHospitalDto>>(`/super-admin/hospitals/${id}`, data),
+
+  createHospitalUser: (id: string, userData: CreateUserRequestDto) =>
+    apiClient.post<ApiResponse<SuperAdminUserDto>>(`/super-admin/hospitals/${id}/users`, userData),
+
+  getHospitalUsers: (id: string, search = "", page = 0, size = 50) =>
+    apiClient.get<ApiResponse<PageResponse<SuperAdminUserDto>>>(
+      `/super-admin/hospitals/${id}/users?search=${encodeURIComponent(search)}&page=${page}&size=${size}`
+    ),
 
   toggleHospitalStatus: (id: string, suspend: boolean) =>
     apiClient.patch<ApiResponse<SuperAdminHospitalDto>>(
@@ -102,10 +121,16 @@ export const superAdminApi = {
     ),
 
   // Users
-  searchUsers: (search: string, page = 0, size = 20) =>
-    apiClient.get<ApiResponse<PageResponse<SuperAdminUserDto>>>(
-      `/super-admin/users?search=${encodeURIComponent(search)}&page=${page}&size=${size}`
-    ),
+  searchUsers: (search: string, hospitalId = "", page = 0, size = 20) => {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (hospitalId) params.append("hospitalId", hospitalId);
+    params.append("page", page.toString());
+    params.append("size", size.toString());
+    return apiClient.get<ApiResponse<PageResponse<SuperAdminUserDto>>>(
+      `/super-admin/users?${params.toString()}`
+    );
+  },
 
   lockUser: (id: string) =>
     apiClient.patch<ApiResponse<SuperAdminUserDto>>(`/super-admin/users/${id}/lock`),

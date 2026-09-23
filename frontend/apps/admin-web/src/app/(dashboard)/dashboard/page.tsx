@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Users, CalendarDays, Receipt, Activity, Stethoscope, Clock, IndianRupee, Bed, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { adminApi, HospitalAdminStatsDto } from "@medicore/api";
-import { toast } from "sonner";
+import { useAuthStore } from "@/store/auth-store";
+import DoctorDashboard from "@/components/dashboard/DoctorDashboard";
+import NurseDashboard from "@/components/dashboard/NurseDashboard";
 
 const quickActions = [
   { label: "Register Patient", href: "/patients/register", icon: Users, desc: "New patient registration" },
@@ -14,10 +16,15 @@ const quickActions = [
 ];
 
 export default function DashboardPage() {
+  const { roles } = useAuthStore();
   const [stats, setStats] = useState<HospitalAdminStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isDoctorOnly = roles.includes("DOCTOR") && !roles.includes("SUPER_ADMIN") && !roles.includes("ADMIN");
+  const isNurseOnly = roles.includes("NURSE") && !roles.includes("SUPER_ADMIN") && !roles.includes("ADMIN");
+
   useEffect(() => {
+    if (isDoctorOnly || isNurseOnly) return;
     async function loadStats() {
       try {
         const data = await adminApi.getStats();
@@ -29,7 +36,15 @@ export default function DashboardPage() {
       }
     }
     loadStats();
-  }, []);
+  }, [isDoctorOnly, isNurseOnly]);
+
+  if (isDoctorOnly) {
+    return <DoctorDashboard />;
+  }
+
+  if (isNurseOnly) {
+    return <NurseDashboard />;
+  }
 
   const statCards = [
     {

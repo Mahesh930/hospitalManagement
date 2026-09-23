@@ -57,7 +57,8 @@ public class PatientController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE')")
     public ResponseEntity<ApiResponse<PatientDto>> getPatientById(@PathVariable UUID id) {
-        PatientDto patient = patientService.getPatientById(id);
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        PatientDto patient = patientService.getPatientById(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(patient));
     }
 
@@ -70,7 +71,8 @@ public class PatientController {
     @GetMapping("/uhid/{uhid}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE')")
     public ResponseEntity<ApiResponse<PatientDto>> getPatientByUhid(@PathVariable String uhid) {
-        PatientDto patient = patientService.getPatientByUhid(uhid);
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        PatientDto patient = patientService.getPatientByUhid(uhid, currentUser);
         return ResponseEntity.ok(ApiResponse.success(patient));
     }
 
@@ -81,9 +83,12 @@ public class PatientController {
      * @return ResponseEntity containing list of matching PatientDto records.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE')")
-    public ResponseEntity<ApiResponse<List<PatientDto>>> getAllPatients(@RequestParam(required = false) String query) {
-        List<PatientDto> patients = patientService.searchPatients(query);
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<PatientDto>>> getAllPatients(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) UUID hospitalId) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<PatientDto> patients = patientService.searchPatients(query, hospitalId, currentUser);
         return ResponseEntity.ok(ApiResponse.success(patients));
     }
 
@@ -91,12 +96,16 @@ public class PatientController {
      * Performs a server-side search across patient records by name, phone number, or UHID.
      * 
      * @param query Search string term.
+     * @param hospitalId Optional hospital tenant filter UUID.
      * @return ResponseEntity containing list of matching PatientDto records.
      */
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE')")
-    public ResponseEntity<ApiResponse<List<PatientDto>>> searchPatients(@RequestParam(required = false) String query) {
-        List<PatientDto> patients = patientService.searchPatients(query);
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'NURSE', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<PatientDto>>> searchPatients(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) UUID hospitalId) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<PatientDto> patients = patientService.searchPatients(query, hospitalId, currentUser);
         return ResponseEntity.ok(ApiResponse.success(patients));
     }
 
@@ -120,5 +129,19 @@ public class PatientController {
         String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
         PatientDto updated = patientService.addAllergy(id, allergyDto, currentUser);
         return ResponseEntity.ok(ApiResponse.success(updated, "Allergy recorded successfully"));
+    }
+
+    /**
+     * Retrieves the complete longitudinal medical record and chronological timeline for a patient.
+     *
+     * @param id Patient UUID identifier.
+     * @return ResponseEntity holding PatientTimelineDto.
+     */
+    @GetMapping("/{id}/timeline")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'NURSE', 'ADMIN', 'RECEPTIONIST')")
+    public ResponseEntity<ApiResponse<com.mahesh.hospitalManagement.dto.PatientTimelineDto>> getPatientTimeline(@PathVariable UUID id) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        com.mahesh.hospitalManagement.dto.PatientTimelineDto timeline = patientService.getPatientLongitudinalTimeline(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(timeline, "Patient timeline retrieved successfully"));
     }
 }

@@ -20,7 +20,11 @@ public class PatientTest {
         List<Patient> patientList=patientRepository.findAll();
         System.out.println(patientList);
 
-        Patient p1 = new Patient();
+        Patient p1 = Patient.builder()
+                .name("Test Patient")
+                .uhid("UHID-" + java.util.UUID.randomUUID().toString().substring(0, 8))
+                .phone("9876543210")
+                .build();
         patientRepository.save(p1);
     }
 

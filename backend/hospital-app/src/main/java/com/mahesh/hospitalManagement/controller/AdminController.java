@@ -83,4 +83,31 @@ public class AdminController {
         DoctorResponseDto doctor = doctorService.onBoardNewDoctor(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(doctor, "Doctor onboarded successfully"));
     }
+
+    /**
+     * Provisions a new staff member account (DOCTOR, RECEPTIONIST, PHARMACIST, NURSE, CASHIER, LAB_TECH, ADMIN) for the hospital.
+     * 
+     * @param dto User creation payload.
+     * @return ResponseEntity with created SuperAdminUserDto.
+     */
+    @PostMapping("/users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<com.mahesh.hospitalManagement.dto.SuperAdminUserDto>> createStaffUser(
+            @RequestBody com.mahesh.hospitalManagement.dto.CreateUserRequestDto dto) {
+        String currentAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        com.mahesh.hospitalManagement.dto.SuperAdminUserDto user = adminService.createStaffUser(dto, currentAdmin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(user, "Staff member provisioned successfully"));
+    }
+
+    /**
+     * Retrieves all active staff members registered in the Hospital Admin's workspace.
+     * 
+     * @return ResponseEntity with list of SuperAdminUserDto records.
+     */
+    @GetMapping("/users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<com.mahesh.hospitalManagement.dto.SuperAdminUserDto>>> getStaffUsers() {
+        String currentAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(ApiResponse.success(adminService.getStaffUsers(currentAdmin)));
+    }
 }

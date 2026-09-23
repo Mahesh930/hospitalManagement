@@ -5,7 +5,9 @@ interface AuthState {
   userId: string | null;
   username: string | null;
   roles: string[];
+  selectedHospitalId: string;
   setAuth: (token: string, userId: string, username: string, roles: string[]) => void;
+  setSelectedHospitalId: (id: string) => void;
   logout: () => void;
   hasRole: (role: string) => boolean;
 }
@@ -15,6 +17,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   userId: typeof window !== "undefined" ? localStorage.getItem("medicore_userId") : null,
   username: typeof window !== "undefined" ? localStorage.getItem("medicore_username") : null,
   roles: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("medicore_roles") || "[]") : [],
+  selectedHospitalId: typeof window !== "undefined" ? localStorage.getItem("medicore_selectedHospitalId") || "ALL" : "ALL",
 
   setAuth: (token, userId, username, roles) => {
     localStorage.setItem("medicore_token", token);
@@ -24,12 +27,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token, userId, username, roles });
   },
 
+  setSelectedHospitalId: (id: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("medicore_selectedHospitalId", id);
+    }
+    set({ selectedHospitalId: id });
+  },
+
   logout: () => {
     localStorage.removeItem("medicore_token");
     localStorage.removeItem("medicore_userId");
     localStorage.removeItem("medicore_username");
     localStorage.removeItem("medicore_roles");
-    set({ token: null, userId: null, username: null, roles: [] });
+    localStorage.removeItem("medicore_selectedHospitalId");
+    set({ token: null, userId: null, username: null, roles: [], selectedHospitalId: "ALL" });
   },
 
   hasRole: (role: string) => get().roles.includes(role),

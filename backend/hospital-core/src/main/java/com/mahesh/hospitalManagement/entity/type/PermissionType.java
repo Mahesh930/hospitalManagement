@@ -18,7 +18,10 @@ public enum PermissionType {
     BILLING_WRITE("billing:write"),
     MASTER_DATA_MANAGE("master_data:manage"),
     USER_MANAGE("user:manage"),
-    REPORT_VIEW("report:view");
+    REPORT_VIEW("report:view"),
+    NURSE_READ("nurse:read"),
+    NURSE_WRITE("nurse:write"),
+    BED_MANAGE("bed:manage");
 
     private final String permission;
 }

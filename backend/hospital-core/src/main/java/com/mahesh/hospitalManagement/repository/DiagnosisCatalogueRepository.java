@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface DiagnosisCatalogueRepository extends JpaRepository<DiagnosisCatalogue, UUID> {
     Optional<DiagnosisCatalogue> findByIcdCode(String icdCode);
     List<DiagnosisCatalogue> findByDescriptionContainingIgnoreCase(String description);
+    List<DiagnosisCatalogue> findByCategory(String category);
 }

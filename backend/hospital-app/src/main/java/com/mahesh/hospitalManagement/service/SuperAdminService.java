@@ -132,6 +132,101 @@ public class SuperAdminService {
         return mapToDto(hospital);
     }
 
+    @Transactional
+    public SuperAdminHospitalDto updateHospital(UUID hospitalId, SuperAdminHospitalDto dto, String currentAdmin) {
+        Hospital hospital = getActiveHospital(hospitalId);
+
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            hospital.setName(dto.getName());
+        }
+        if (dto.getAddress() != null) hospital.setAddress(dto.getAddress());
+        if (dto.getMaxUsers() != null) hospital.setMaxUsers(dto.getMaxUsers());
+        if (dto.getMaxDoctors() != null) hospital.setMaxDoctors(dto.getMaxDoctors());
+        if (dto.getMaxBeds() != null) hospital.setMaxBeds(dto.getMaxBeds());
+        if (dto.getStatus() != null) hospital.setStatus(dto.getStatus());
+
+        HospitalDetails details = hospital.getDetails();
+        if (details == null) {
+            details = HospitalDetails.builder().build();
+        }
+        if (dto.getGstNumber() != null) details.setGstNumber(dto.getGstNumber());
+        if (dto.getLicenseNumber() != null) details.setLicenseNumber(dto.getLicenseNumber());
+        if (dto.getCategory() != null) details.setCategory(dto.getCategory());
+        if (dto.getOwnershipType() != null) details.setOwnershipType(dto.getOwnershipType());
+        if (dto.getCity() != null) details.setCity(dto.getCity());
+        if (dto.getState() != null) details.setState(dto.getState());
+        if (dto.getCountry() != null) details.setCountry(dto.getCountry());
+        if (dto.getPostalCode() != null) details.setPostalCode(dto.getPostalCode());
+        if (dto.getEmail() != null) details.setEmail(dto.getEmail());
+        if (dto.getPhone() != null) details.setPhone(dto.getPhone());
+        if (dto.getEmergencyNumber() != null) details.setEmergencyNumber(dto.getEmergencyNumber());
+        if (dto.getWebsite() != null) details.setWebsite(dto.getWebsite());
+
+        hospital.setDetails(details);
+        hospital = hospitalRepository.save(hospital);
+
+        auditService.logAction(currentAdmin, "UPDATE_HOSPITAL_CONFIG", null, hospital.getName(), "0.0.0.0", "Web", hospital.getName());
+        return mapToDto(hospital);
+    }
+
+    @Transactional
+    public SuperAdminUserDto createHospitalUser(UUID hospitalId, CreateUserRequestDto dto, String currentAdmin) {
+        if (dto == null || dto.getUsername() == null || dto.getUsername().isBlank()) {
+            throw new com.mahesh.hospitalManagement.error.BusinessValidationException("Username is required.");
+        }
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            throw new com.mahesh.hospitalManagement.error.BusinessValidationException("Password is required.");
+        }
+
+        Hospital hospital = getActiveHospital(hospitalId);
+
+        String cleanUsername = dto.getUsername().trim();
+        if (userRepository.findByUsername(cleanUsername).isPresent()) {
+            throw new com.mahesh.hospitalManagement.error.BusinessValidationException("Username '" + cleanUsername + "' is already taken.");
+        }
+
+        RoleType role = RoleType.ADMIN;
+        if (dto.getRole() != null && !dto.getRole().isBlank()) {
+            try {
+                role = RoleType.valueOf(dto.getRole().trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                role = RoleType.ADMIN;
+            }
+        }
+
+        User user = User.builder()
+                .username(cleanUsername)
+                .password(passwordEncoder.encode(dto.getPassword().trim()))
+                .phone(dto.getPhone() != null ? dto.getPhone().trim() : null)
+                .providerType(AuthProviderType.EMAIL)
+                .hospital(hospital)
+                .roles(Set.of(role))
+                .build();
+
+        user = userRepository.save(user);
+
+        if (role == RoleType.DOCTOR) {
+            if (doctorRepository.findByUserId(user.getId()).isEmpty()) {
+                String cleanUser = cleanUsername;
+                String docName = cleanUser.contains("@") ? cleanUser.substring(0, cleanUser.indexOf("@")) : cleanUser;
+                docName = docName.length() > 1 ? docName.substring(0, 1).toUpperCase() + docName.substring(1) : docName.toUpperCase();
+                Doctor doctor = Doctor.builder()
+                        .name("Dr. " + docName)
+                        .specialization("General Practitioner")
+                        .registrationNumber("DOC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                        .consultationFee(500.0)
+                        .email(cleanUser)
+                        .hospital(hospital)
+                        .user(user)
+                        .build();
+                doctorRepository.save(doctor);
+            }
+        }
+
+        auditService.logAction(currentAdmin, "PROVISION_HOSPITAL_USER", role.name(), user.getUsername(), "0.0.0.0", "Web", hospital.getName());
+        return mapUserToDto(user);
+    }
+
     // ─────────────────────────────────────────────────────────────
     // HOSPITAL LISTING — SEARCH, FILTER, PAGINATE
     // ─────────────────────────────────────────────────────────────
@@ -252,7 +347,16 @@ public class SuperAdminService {
 
     @Transactional(readOnly = true)
     public Page<SuperAdminUserDto> searchUsers(String search, int page, int size) {
+        return searchUsers(search, null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SuperAdminUserDto> searchUsers(String search, UUID hospitalId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        if (hospitalId != null) {
+            return userRepository.searchUsersByHospital(search == null ? "" : search, hospitalId, pageable)
+                    .map(this::mapUserToDto);
+        }
         return userRepository.searchUsers(search == null ? "" : search, pageable)
                 .map(this::mapUserToDto);
     }

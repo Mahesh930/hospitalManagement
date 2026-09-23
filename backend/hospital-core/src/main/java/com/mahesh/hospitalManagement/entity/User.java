@@ -41,6 +41,10 @@ public class User extends BaseEntity implements UserDetails {
     @JoinColumn(name = "hospital_id")
     private Hospital hospital;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_ward_id")
+    private Ward assignedWard;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     @Builder.Default
