@@ -131,8 +131,34 @@ export default function ReceptionDashboardPage() {
           </Link>
 
           <Link
+            href="/reception/coordination"
+            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background hover:border-indigo-500/40 hover:bg-muted/50 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-500/20">
+              <Stethoscope className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Coordination Desk</p>
+              <p className="text-xs text-muted-foreground">Rosters, Diagnostics & Billing</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/reception/handover"
+            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background hover:border-teal-500/40 hover:bg-muted/50 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center group-hover:bg-teal-500/20">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Shift Handover</p>
+              <p className="text-xs text-muted-foreground">Cash tally & shift continuity</p>
+            </div>
+          </Link>
+
+          <Link
             href="/reception/queue?modal=walkin"
-            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background hover:border-emerald/40 hover:bg-muted/50 transition-all group"
+            className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background hover:border-emerald-500/40 hover:bg-muted/50 transition-all group"
           >
             <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500/20">
               <Activity className="w-5 h-5" />

@@ -33,4 +33,7 @@ public interface BedAdmissionRepository extends JpaRepository<BedAdmission, UUID
 
     @Query("SELECT ba FROM BedAdmission ba WHERE ba.patient.uhid = :uhid AND ba.bed.ward.id = :wardId AND ba.status = 'ADMITTED' AND ba.deletedAt IS NULL")
     Optional<BedAdmission> findActiveAdmissionByPatientUhidAndWard(@Param("uhid") String uhid, @Param("wardId") UUID wardId);
+
+    @Query("SELECT ba FROM BedAdmission ba WHERE ba.admittingDoctor.id = :doctorId AND ba.status = 'ADMITTED' AND ba.deletedAt IS NULL ORDER BY ba.admissionTime DESC")
+    List<BedAdmission> findActiveAdmissionsByDoctor(@Param("doctorId") UUID doctorId);
 }

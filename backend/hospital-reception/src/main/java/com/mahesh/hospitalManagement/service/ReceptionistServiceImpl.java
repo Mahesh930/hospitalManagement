@@ -2,6 +2,7 @@ package com.mahesh.hospitalManagement.service;
 
 import com.mahesh.hospitalManagement.dto.*;
 import com.mahesh.hospitalManagement.entity.*;
+import com.mahesh.hospitalManagement.error.BusinessValidationException;
 import com.mahesh.hospitalManagement.error.ResourceNotFoundException;
 import com.mahesh.hospitalManagement.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,12 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     private final InvoiceRepository invoiceRepository;
     private final PatientService patientService;
     private final AuditService auditService;
+    private final PatientMergeRequestRepository mergeRequestRepository;
+    private final DiagnosticBookingRepository diagnosticBookingRepository;
+    private final ReceptionShiftHandoverRepository handoverRepository;
+    private final PatientFeedbackRepository feedbackRepository;
+    private final LostAndFoundItemRepository lostAndFoundRepository;
+    private final InsuranceRepository insuranceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -171,6 +178,12 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Override
     @Transactional
     public QueueManagementDto issueWalkinToken(WalkinTokenRequestDto dto, String currentUser) {
+        if (dto.getDoctorId() == null) {
+            throw new BusinessValidationException("Doctor ID is required to issue walk-in token");
+        }
+        if (dto.getPatientId() == null) {
+            throw new BusinessValidationException("Patient ID is required to issue walk-in token");
+        }
         Patient patient = patientRepository.findById(dto.getPatientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found: " + dto.getPatientId()));
         Doctor doctor = doctorRepository.findById(dto.getDoctorId())
@@ -188,6 +201,15 @@ public class ReceptionistServiceImpl implements ReceptionistService {
         int priorityRank = 2; // Standard
         if (Boolean.TRUE.equals(dto.getIsEmergency())) priorityRank = 0;
         else if (Boolean.TRUE.equals(dto.getIsVip())) priorityRank = 1;
+
+        // Check for duplicate active visit in queue
+        List<PatientVisit> activeVisits = patientVisitRepository.findActiveDoctorQueue(doctor.getId());
+        boolean hasDuplicate = activeVisits.stream().anyMatch(v -> 
+            v.getPatient() != null && v.getPatient().getId().equals(patient.getId())
+        );
+        if (hasDuplicate && !Boolean.TRUE.equals(dto.getIsEmergency())) {
+            throw new BusinessValidationException("Patient already has an active visit in queue for Dr. " + doctor.getSpecialization());
+        }
 
         PatientVisit visit = PatientVisit.builder()
                 .patient(patient)
@@ -210,6 +232,15 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Override
     @Transactional
     public PatientDto registerEmergencyPatient(EmergencyRegistrationDto dto, String currentUser) {
+        if (dto != null) {
+            if (dto.getAge() != null && (dto.getAge() < 0 || dto.getAge() > 150)) {
+                throw new BusinessValidationException("Invalid age specified for emergency registration.");
+            }
+            if (dto.getPhone() != null && !dto.getPhone().isBlank() && !dto.getPhone().matches("^\\+?[0-9]{10,15}$")) {
+                throw new BusinessValidationException("Invalid phone number format for emergency registration.");
+            }
+        }
+
         PatientDto patientReq = PatientDto.builder()
                 .name(dto.getName() != null && !dto.getName().isBlank() ? dto.getName() : "Emergency Unidentified")
                 .gender(dto.getGender() != null ? dto.getGender() : "UNKNOWN")
@@ -248,6 +279,9 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Visit record not found: " + visitId));
 
         if (status != null && !status.isBlank()) {
+            if ("SURGERY_COMPLETED".equalsIgnoreCase(status) || "IN_SURGERY".equalsIgnoreCase(status) || "DISCHARGED_CLINICAL".equalsIgnoreCase(status)) {
+                throw new BusinessValidationException("Receptionist does not have permission to set clinical queue status: " + status);
+            }
             visit.setStatus(status);
         }
         if (priorityRank != null) {
@@ -296,6 +330,18 @@ public class ReceptionistServiceImpl implements ReceptionistService {
     @Override
     @Transactional
     public PatientDocumentDto uploadPatientDocument(UUID patientId, PatientDocumentDto dto, String currentUser) {
+        // Validate MIME type
+        if (dto.getMimeType() != null) {
+            String mime = dto.getMimeType().toLowerCase();
+            if (mime.contains("msdownload") || mime.contains("x-sh") || (mime.contains("octet-stream") && dto.getFileName() != null && dto.getFileName().toLowerCase().endsWith(".exe")) || (dto.getFileName() != null && dto.getFileName().toLowerCase().endsWith(".exe"))) {
+                throw new BusinessValidationException("Unsupported file type: " + dto.getMimeType());
+            }
+        }
+        // Validate file size (max 25MB)
+        if (dto.getSizeBytes() != null && dto.getSizeBytes() > 25 * 1024 * 1024) {
+            throw new BusinessValidationException("File size exceeds maximum permitted limit of 25MB");
+        }
+
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found: " + patientId));
 
@@ -376,7 +422,514 @@ public class ReceptionistServiceImpl implements ReceptionistService {
                 .mimeType(doc.getMimeType())
                 .sizeBytes(doc.getSizeBytes())
                 .uploadedBy(doc.getUploadedBy())
+                .isVerified(Boolean.TRUE.equals(doc.getIsVerified()))
+                .verifiedBy(doc.getVerifiedBy())
+                .verifiedAt(doc.getVerifiedAt())
                 .createdAt(doc.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PatientDocumentDto verifyPatientDocument(UUID documentId, String currentUser) {
+        PatientDocument doc = patientDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient document not found with ID: " + documentId));
+
+        doc.setIsVerified(true);
+        doc.setVerifiedBy(currentUser);
+        doc.setVerifiedAt(LocalDateTime.now());
+        doc.setUpdatedBy(currentUser);
+
+        PatientDocument saved = patientDocumentRepository.save(doc);
+        auditService.logAction(currentUser, "VERIFY_DOCUMENT", null, "Verified document ID: " + documentId, "127.0.0.1", "WEB", "HOSPITAL");
+        return mapDocToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DuplicateCheckDto checkDuplicatePatient(String phone, String name, String email, String aadhaar) {
+        List<DuplicateCheckDto.MatchedPatientDto> matches = new ArrayList<>();
+
+        if (phone != null && !phone.isBlank()) {
+            patientRepository.findByPhone(phone.trim()).ifPresent(p -> {
+                matches.add(DuplicateCheckDto.MatchedPatientDto.builder()
+                        .id(p.getId())
+                        .uhid(p.getUhid())
+                        .name(p.getName())
+                        .phone(p.getPhone())
+                        .email(p.getEmail())
+                        .aadhaar(p.getAadhaar())
+                        .gender(p.getGender())
+                        .age(p.getAge())
+                        .matchReason("Exact Phone Number Match (" + p.getPhone() + ")")
+                        .build());
+            });
+        }
+
+        if (aadhaar != null && !aadhaar.isBlank()) {
+            patientRepository.findByAadhaar(aadhaar.trim()).ifPresent(p -> {
+                boolean alreadyMatched = matches.stream().anyMatch(m -> m.getId().equals(p.getId()));
+                if (!alreadyMatched) {
+                    matches.add(DuplicateCheckDto.MatchedPatientDto.builder()
+                            .id(p.getId())
+                            .uhid(p.getUhid())
+                            .name(p.getName())
+                            .phone(p.getPhone())
+                            .email(p.getEmail())
+                            .aadhaar(p.getAadhaar())
+                            .gender(p.getGender())
+                            .age(p.getAge())
+                            .matchReason("Exact National ID / Aadhaar Match")
+                            .build());
+                }
+            });
+        }
+
+        if (name != null && !name.isBlank() && phone != null && !phone.isBlank()) {
+            List<Patient> byNamePhone = patientRepository.findDuplicatesByPhoneAndName(phone.trim(), name.trim());
+            for (Patient p : byNamePhone) {
+                boolean alreadyMatched = matches.stream().anyMatch(m -> m.getId().equals(p.getId()));
+                if (!alreadyMatched) {
+                    matches.add(DuplicateCheckDto.MatchedPatientDto.builder()
+                            .id(p.getId())
+                            .uhid(p.getUhid())
+                            .name(p.getName())
+                            .phone(p.getPhone())
+                            .email(p.getEmail())
+                            .aadhaar(p.getAadhaar())
+                            .gender(p.getGender())
+                            .age(p.getAge())
+                            .matchReason("Name and Phone Combination Match")
+                            .build());
+                }
+            }
+        }
+
+        return DuplicateCheckDto.builder()
+                .isDuplicate(!matches.isEmpty())
+                .matchCount(matches.size())
+                .matchedPatients(matches)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PatientMergeRequestDto createMergeRequest(PatientMergeRequestDto dto, String currentUser) {
+        Patient source = patientRepository.findById(dto.getSourcePatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Source patient not found with ID: " + dto.getSourcePatientId()));
+        Patient target = patientRepository.findById(dto.getTargetPatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Target patient not found with ID: " + dto.getTargetPatientId()));
+
+        PatientMergeRequest req = PatientMergeRequest.builder()
+                .sourcePatientId(source.getId())
+                .sourcePatientUhid(source.getUhid())
+                .sourcePatientName(source.getName())
+                .targetPatientId(target.getId())
+                .targetPatientUhid(target.getUhid())
+                .targetPatientName(target.getName())
+                .reason(dto.getReason())
+                .status("PENDING")
+                .requestedBy(currentUser)
+                .build();
+        req.setCreatedBy(currentUser);
+
+        PatientMergeRequest saved = mergeRequestRepository.save(req);
+        auditService.logAction(currentUser, "REQUEST_PATIENT_MERGE", source.getUhid(), "Target: " + target.getUhid(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapMergeToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientMergeRequestDto> getMergeRequests(String status) {
+        List<PatientMergeRequest> list = (status != null && !status.isBlank())
+                ? mergeRequestRepository.findByStatusOrderByCreatedAtDesc(status)
+                : mergeRequestRepository.findAllByOrderByCreatedAtDesc();
+
+        return list.stream().map(this::mapMergeToDto).collect(Collectors.toList());
+    }
+
+    private PatientMergeRequestDto mapMergeToDto(PatientMergeRequest req) {
+        return PatientMergeRequestDto.builder()
+                .id(req.getId())
+                .sourcePatientId(req.getSourcePatientId())
+                .sourcePatientUhid(req.getSourcePatientUhid())
+                .sourcePatientName(req.getSourcePatientName())
+                .targetPatientId(req.getTargetPatientId())
+                .targetPatientUhid(req.getTargetPatientUhid())
+                .targetPatientName(req.getTargetPatientName())
+                .reason(req.getReason())
+                .status(req.getStatus())
+                .requestedBy(req.getRequestedBy())
+                .reviewedBy(req.getReviewedBy())
+                .reviewNotes(req.getReviewNotes())
+                .createdAt(req.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorScheduleDto> getDoctorSchedules() {
+        List<Doctor> doctors = doctorRepository.findAll();
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+
+        return doctors.stream().map(doc -> {
+            String deptName = (doc.getDepartments() != null && !doc.getDepartments().isEmpty())
+                    ? doc.getDepartments().iterator().next().getName()
+                    : (doc.getSpecialization() != null ? doc.getSpecialization() : "General OPD");
+
+            List<PatientVisit> activeQueue = patientVisitRepository.findActiveDoctorQueue(doc.getId());
+            long todayAppts = appointmentRepository.countTodayAppointmentsForDoctor(doc.getId(), startOfDay, endOfDay);
+
+            return DoctorScheduleDto.builder()
+                    .doctorId(doc.getId())
+                    .doctorName(doc.getName())
+                    .specialization(doc.getSpecialization())
+                    .departmentName(deptName)
+                    .roomNumber(doc.getRoomNumber() != null ? doc.getRoomNumber() : "OPD Room")
+                    .workingHours("09:00 AM - 05:00 PM")
+                    .isAvailable(Boolean.TRUE.equals(doc.getIsAvailable()))
+                    .isOnLeave(!Boolean.TRUE.equals(doc.getIsAvailable()))
+                    .activeQueueCount(activeQueue.size())
+                    .todayAppointmentsCount((int) todayAppts)
+                    .consultationFee(doc.getConsultationFee() != null ? doc.getConsultationFee() : 500.0)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public InsuranceDetailsDto assignPatientInsurance(UUID patientId, InsuranceDetailsDto dto, String currentUser) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
+
+        Insurance insurance = patient.getInsurance();
+        if (insurance == null) {
+            insurance = Insurance.builder()
+                    .policyNumber(dto.getPolicyNumber())
+                    .provider(dto.getProvider())
+                    .validUntil(dto.getValidTill() != null ? dto.getValidTill() : LocalDate.now().plusYears(1))
+                    .build();
+            insurance.setCreatedBy(currentUser);
+        } else {
+            insurance.setPolicyNumber(dto.getPolicyNumber());
+            insurance.setProvider(dto.getProvider());
+            if (dto.getValidTill() != null) insurance.setValidUntil(dto.getValidTill());
+            insurance.setUpdatedBy(currentUser);
+        }
+
+        Insurance savedInsurance = insuranceRepository.save(insurance);
+        patient.setInsurance(savedInsurance);
+        if (dto.getTpaName() != null) {
+            patient.setTpaDetails(dto.getTpaName());
+        }
+        patientRepository.save(patient);
+
+        auditService.logAction(currentUser, "ASSIGN_INSURANCE", null, "Policy: " + dto.getPolicyNumber(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return InsuranceDetailsDto.builder()
+                .id(savedInsurance.getId())
+                .patientId(patient.getId())
+                .policyNumber(savedInsurance.getPolicyNumber())
+                .provider(savedInsurance.getProvider())
+                .validTill(savedInsurance.getValidUntil())
+                .tpaName(patient.getTpaDetails())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InsuranceDetailsDto getPatientInsurance(UUID patientId) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
+
+        if (patient.getInsurance() == null) {
+            return null;
+        }
+
+        Insurance ins = patient.getInsurance();
+        return InsuranceDetailsDto.builder()
+                .id(ins.getId())
+                .patientId(patient.getId())
+                .policyNumber(ins.getPolicyNumber())
+                .provider(ins.getProvider())
+                .validTill(ins.getValidUntil())
+                .tpaName(patient.getTpaDetails())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public DiagnosticBookingDto scheduleDiagnosticBooking(DiagnosticBookingDto dto, String currentUser) {
+        Patient patient = patientRepository.findById(dto.getPatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + dto.getPatientId()));
+
+        DiagnosticBooking booking = DiagnosticBooking.builder()
+                .patientId(patient.getId())
+                .patientName(patient.getName())
+                .patientUhid(patient.getUhid())
+                .testName(dto.getTestName())
+                .category(dto.getCategory() != null ? dto.getCategory() : "LAB")
+                .bookingDateTime(dto.getBookingDateTime() != null ? dto.getBookingDateTime() : LocalDateTime.now().plusHours(1))
+                .status("SCHEDULED")
+                .referringDoctorId(dto.getReferringDoctorId())
+                .referringDoctorName(dto.getReferringDoctorName())
+                .departmentName(dto.getDepartmentName())
+                .instructions(dto.getInstructions())
+                .bookedBy(currentUser)
+                .build();
+        booking.setCreatedBy(currentUser);
+
+        DiagnosticBooking saved = diagnosticBookingRepository.save(booking);
+        auditService.logAction(currentUser, "BOOK_DIAGNOSTIC", null, "Test: " + dto.getTestName(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapDiagToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DiagnosticBookingDto> getDiagnosticBookings(UUID patientId, String status) {
+        List<DiagnosticBooking> list;
+        if (patientId != null) {
+            list = diagnosticBookingRepository.findByPatientIdOrderByBookingDateTimeDesc(patientId);
+        } else if (status != null && !status.isBlank()) {
+            list = diagnosticBookingRepository.findByStatusOrderByBookingDateTimeAsc(status);
+        } else {
+            LocalDateTime start = LocalDate.now().atStartOfDay();
+            LocalDateTime end = LocalDate.now().atTime(LocalTime.MAX);
+            list = diagnosticBookingRepository.findByBookingDateTimeBetweenOrderByBookingDateTimeAsc(start, end);
+        }
+
+        return list.stream().map(this::mapDiagToDto).collect(Collectors.toList());
+    }
+
+    private DiagnosticBookingDto mapDiagToDto(DiagnosticBooking b) {
+        return DiagnosticBookingDto.builder()
+                .id(b.getId())
+                .patientId(b.getPatientId())
+                .patientName(b.getPatientName())
+                .patientUhid(b.getPatientUhid())
+                .testName(b.getTestName())
+                .category(b.getCategory())
+                .bookingDateTime(b.getBookingDateTime())
+                .status(b.getStatus())
+                .referringDoctorId(b.getReferringDoctorId())
+                .referringDoctorName(b.getReferringDoctorName())
+                .departmentName(b.getDepartmentName())
+                .instructions(b.getInstructions())
+                .bookedBy(b.getBookedBy())
+                .createdAt(b.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ReceptionShiftHandoverDto createShiftHandover(ReceptionShiftHandoverDto dto, String currentUser) {
+        ReceptionShiftHandover handover = ReceptionShiftHandover.builder()
+                .shiftDate(dto.getShiftDate() != null ? dto.getShiftDate() : LocalDate.now())
+                .shiftType(dto.getShiftType() != null ? dto.getShiftType() : "MORNING")
+                .outgoingStaff(currentUser)
+                .incomingStaff(dto.getIncomingStaff())
+                .cashCollected(dto.getCashCollected() != null ? dto.getCashCollected() : java.math.BigDecimal.ZERO)
+                .totalTokensIssued(dto.getTotalTokensIssued() != null ? dto.getTotalTokensIssued() : 0)
+                .totalWalkinsHandled(dto.getTotalWalkinsHandled() != null ? dto.getTotalWalkinsHandled() : 0)
+                .totalEmergenciesHandled(dto.getTotalEmergenciesHandled() != null ? dto.getTotalEmergenciesHandled() : 0)
+                .pendingAppointmentsSummary(dto.getPendingAppointmentsSummary())
+                .handoverNotes(dto.getHandoverNotes())
+                .build();
+        handover.setCreatedBy(currentUser);
+
+        ReceptionShiftHandover saved = handoverRepository.save(handover);
+        auditService.logAction(currentUser, "CREATE_SHIFT_HANDOVER", null, "Shift: " + saved.getShiftType(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapHandoverToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReceptionShiftHandoverDto> getShiftHandovers(LocalDate date) {
+        List<ReceptionShiftHandover> list = (date != null)
+                ? handoverRepository.findByShiftDateOrderByCreatedAtDesc(date)
+                : handoverRepository.findAllByOrderByShiftDateDescCreatedAtDesc();
+
+        return list.stream().map(this::mapHandoverToDto).collect(Collectors.toList());
+    }
+
+    private ReceptionShiftHandoverDto mapHandoverToDto(ReceptionShiftHandover h) {
+        return ReceptionShiftHandoverDto.builder()
+                .id(h.getId())
+                .shiftDate(h.getShiftDate())
+                .shiftType(h.getShiftType())
+                .outgoingStaff(h.getOutgoingStaff())
+                .incomingStaff(h.getIncomingStaff())
+                .cashCollected(h.getCashCollected())
+                .totalTokensIssued(h.getTotalTokensIssued())
+                .totalWalkinsHandled(h.getTotalWalkinsHandled())
+                .totalEmergenciesHandled(h.getTotalEmergenciesHandled())
+                .pendingAppointmentsSummary(h.getPendingAppointmentsSummary())
+                .handoverNotes(h.getHandoverNotes())
+                .createdAt(h.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PatientFeedbackDto registerPatientFeedback(PatientFeedbackDto dto, String currentUser) {
+        String pName = dto.getPatientName();
+        String pUhid = dto.getPatientUhid();
+
+        if (dto.getPatientId() != null) {
+            patientRepository.findById(dto.getPatientId()).ifPresent(p -> {
+                dto.setPatientName(p.getName());
+                dto.setPatientUhid(p.getUhid());
+            });
+            pName = dto.getPatientName();
+            pUhid = dto.getPatientUhid();
+        }
+
+        PatientFeedback feedback = PatientFeedback.builder()
+                .patientId(dto.getPatientId())
+                .patientName(pName)
+                .patientUhid(pUhid)
+                .contactPhone(dto.getContactPhone())
+                .category(dto.getCategory() != null ? dto.getCategory() : "COMPLAINT")
+                .subject(dto.getSubject())
+                .description(dto.getDescription())
+                .severity(dto.getSeverity() != null ? dto.getSeverity() : "MEDIUM")
+                .status("OPEN")
+                .recordedBy(currentUser)
+                .assignedDepartment(dto.getAssignedDepartment())
+                .build();
+        feedback.setCreatedBy(currentUser);
+
+        PatientFeedback saved = feedbackRepository.save(feedback);
+        auditService.logAction(currentUser, "REGISTER_FEEDBACK", null, "Category: " + saved.getCategory(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapFeedbackToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientFeedbackDto> getPatientFeedbacks(UUID patientId, String status) {
+        List<PatientFeedback> list;
+        if (patientId != null) {
+            list = feedbackRepository.findByPatientIdOrderByCreatedAtDesc(patientId);
+        } else if (status != null && !status.isBlank()) {
+            list = feedbackRepository.findByStatusOrderByCreatedAtDesc(status);
+        } else {
+            list = feedbackRepository.findAllByOrderByCreatedAtDesc();
+        }
+
+        return list.stream().map(this::mapFeedbackToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public PatientFeedbackDto resolvePatientFeedback(UUID feedbackId, String resolutionNotes, String currentUser) {
+        PatientFeedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient feedback not found with ID: " + feedbackId));
+
+        feedback.setStatus("RESOLVED");
+        feedback.setResolutionNotes(resolutionNotes);
+        feedback.setResolvedBy(currentUser);
+        feedback.setUpdatedBy(currentUser);
+
+        PatientFeedback saved = feedbackRepository.save(feedback);
+        auditService.logAction(currentUser, "RESOLVE_FEEDBACK", null, "Resolved feedback ID: " + feedbackId, "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapFeedbackToDto(saved);
+    }
+
+    private PatientFeedbackDto mapFeedbackToDto(PatientFeedback f) {
+        return PatientFeedbackDto.builder()
+                .id(f.getId())
+                .patientId(f.getPatientId())
+                .patientName(f.getPatientName())
+                .patientUhid(f.getPatientUhid())
+                .contactPhone(f.getContactPhone())
+                .category(f.getCategory())
+                .subject(f.getSubject())
+                .description(f.getDescription())
+                .severity(f.getSeverity())
+                .status(f.getStatus())
+                .recordedBy(f.getRecordedBy())
+                .assignedDepartment(f.getAssignedDepartment())
+                .resolutionNotes(f.getResolutionNotes())
+                .resolvedBy(f.getResolvedBy())
+                .createdAt(f.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public LostAndFoundItemDto recordLostAndFound(LostAndFoundItemDto dto, String currentUser) {
+        LostAndFoundItem item = LostAndFoundItem.builder()
+                .itemName(dto.getItemName())
+                .category(dto.getCategory() != null ? dto.getCategory() : "VALUABLES")
+                .description(dto.getDescription())
+                .foundLocation(dto.getFoundLocation())
+                .foundDateTime(dto.getFoundDateTime() != null ? dto.getFoundDateTime() : LocalDateTime.now())
+                .foundBy(dto.getFoundBy() != null ? dto.getFoundBy() : currentUser)
+                .storageLocation(dto.getStorageLocation() != null ? dto.getStorageLocation() : "Front Desk Safe")
+                .status("UNCLAIMED")
+                .remarks(dto.getRemarks())
+                .build();
+        item.setCreatedBy(currentUser);
+
+        LostAndFoundItem saved = lostAndFoundRepository.save(item);
+        auditService.logAction(currentUser, "RECORD_LOST_ITEM", null, "Item: " + saved.getItemName(), "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapLostToDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LostAndFoundItemDto> getLostAndFoundItems(String status) {
+        List<LostAndFoundItem> list = (status != null && !status.isBlank())
+                ? lostAndFoundRepository.findByStatusOrderByFoundDateTimeDesc(status)
+                : lostAndFoundRepository.findAllByOrderByFoundDateTimeDesc();
+
+        return list.stream().map(this::mapLostToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public LostAndFoundItemDto claimLostAndFound(UUID itemId, String claimedBy, String claimantContact, String claimantIdProof, String remarks, String currentUser) {
+        LostAndFoundItem item = lostAndFoundRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lost item not found with ID: " + itemId));
+
+        item.setStatus("CLAIMED");
+        item.setClaimedBy(claimedBy);
+        item.setClaimantContact(claimantContact);
+        item.setClaimantIdProof(claimantIdProof);
+        item.setClaimedDateTime(LocalDateTime.now());
+        if (remarks != null) item.setRemarks(remarks);
+        item.setUpdatedBy(currentUser);
+
+        LostAndFoundItem saved = lostAndFoundRepository.save(item);
+        auditService.logAction(currentUser, "CLAIM_LOST_ITEM", null, "Claimed by: " + claimedBy, "127.0.0.1", "WEB", "HOSPITAL");
+
+        return mapLostToDto(saved);
+    }
+
+    private LostAndFoundItemDto mapLostToDto(LostAndFoundItem i) {
+        return LostAndFoundItemDto.builder()
+                .id(i.getId())
+                .itemName(i.getItemName())
+                .category(i.getCategory())
+                .description(i.getDescription())
+                .foundLocation(i.getFoundLocation())
+                .foundDateTime(i.getFoundDateTime())
+                .foundBy(i.getFoundBy())
+                .storageLocation(i.getStorageLocation())
+                .status(i.getStatus())
+                .claimedBy(i.getClaimedBy())
+                .claimantContact(i.getClaimantContact())
+                .claimantIdProof(i.getClaimantIdProof())
+                .claimedDateTime(i.getClaimedDateTime())
+                .remarks(i.getRemarks())
+                .createdAt(i.getCreatedAt())
                 .build();
     }
 }

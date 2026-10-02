@@ -9,7 +9,8 @@ import {
   Activity, LayoutDashboard, Users, CalendarDays, Stethoscope,
   Receipt, Database, Settings, LogOut, ChevronLeft, Menu, Shield,
   FileSpreadsheet, Sun, Moon, Building2, ToggleLeft, CreditCard, UserCog,
-  HeartPulse, Bed, Pill, Droplets, BellRing, ClipboardCheck
+  HeartPulse, Bed, Pill, Droplets, BellRing, ClipboardCheck,
+  FlaskConical, UserCheck, Package, ShoppingCart, RefreshCw, AlertTriangle, ShieldAlert, Undo2
 } from "lucide-react";
 
 import { superAdminApi, SuperAdminHospitalDto } from "@medicore/api";
@@ -23,6 +24,14 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PHARMACIST", "PATIENT"] },
+  { label: "Pharmacy Station", href: "/pharmacy", icon: Pill, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Dispensing Queue", href: "/pharmacy/queue", icon: ClipboardCheck, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Stock & Batches", href: "/pharmacy/inventory", icon: Package, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Purchase Orders", href: "/pharmacy/purchases", icon: ShoppingCart, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Returns & Wastage", href: "/pharmacy/returns", icon: Undo2, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Expiry & Recalls", href: "/pharmacy/expiry", icon: AlertTriangle, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Pharmacy Handover", href: "/pharmacy/handover", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
+  { label: "Pharmacy Reports", href: "/pharmacy/reports", icon: Database, roles: ["SUPER_ADMIN", "ADMIN", "PHARMACIST"] },
   { label: "Nurse Station", href: "/nurse", icon: HeartPulse, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Wards & Beds", href: "/nurse/beds", icon: Bed, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Medication (eMAR)", href: "/nurse/emar", icon: Pill, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
@@ -31,13 +40,21 @@ const allNavItems: NavItem[] = [
   { label: "Clinical Assessments", href: "/nurse/assessments", icon: ClipboardCheck, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Shift Handover", href: "/nurse/handover", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN", "NURSE"] },
   { label: "Reception Desk", href: "/reception", icon: Activity, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
+  { label: "Queue & Tokens", href: "/reception/queue", icon: BellRing, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
+  { label: "Patient Registration", href: "/reception/registration", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
+  { label: "Front-Desk Coordination", href: "/reception/coordination", icon: ClipboardCheck, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
+  { label: "Front-Desk Handover", href: "/reception/handover", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
+  { label: "Reception Reports", href: "/reception/reports", icon: Database, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"] },
   { label: "SaaS Hospitals", href: "/super-admin/hospitals", icon: Building2, roles: ["SUPER_ADMIN"] },
   { label: "User Operations", href: "/super-admin/user-operations", icon: UserCog, roles: ["SUPER_ADMIN"] },
   { label: "Feature Flags", href: "/super-admin/feature-flags", icon: ToggleLeft, roles: ["SUPER_ADMIN"] },
   { label: "Subscriptions", href: "/super-admin/subscriptions", icon: CreditCard, roles: ["SUPER_ADMIN"] },
   { label: "Patients", href: "/patients", icon: Users, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST"] },
   { label: "Appointments", href: "/appointments", icon: CalendarDays, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PATIENT"] },
-  { label: "OPD Consultation", href: "/opd", icon: Stethoscope, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
+  { label: "Doctor Queue & OPD", href: "/opd", icon: Stethoscope, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
+  { label: "Inpatient Ward Rounds", href: "/doctor/ipd", icon: Bed, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
+  { label: "Lab & Radiology Orders", href: "/doctor/investigations", icon: FlaskConical, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
+  { label: "Doctor Profile", href: "/doctor/profile", icon: UserCheck, roles: ["SUPER_ADMIN", "ADMIN", "DOCTOR"] },
   { label: "Billing & Invoices", href: "/billing", icon: Receipt, roles: ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST", "BILLING"] },
   { label: "Master Data", href: "/master-data/medicines", icon: Database, roles: ["SUPER_ADMIN", "ADMIN"] },
   { label: "Audit Logs", href: "/settings/audit-logs", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "ADMIN"] },
@@ -49,12 +66,13 @@ const ROLE_BADGE_STYLES: Record<string, { label: string; className: string }> = 
   ADMIN: { label: "ADMIN", className: "bg-blue-600/15 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-700" },
   DOCTOR: { label: "DOCTOR", className: "bg-emerald-600/15 text-emerald-700 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-700" },
   NURSE: { label: "NURSE", className: "bg-teal-600/15 text-teal-700 border-teal-300 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-700" },
+  PHARMACIST: { label: "PHARMACY", className: "bg-indigo-600/15 text-indigo-700 border-indigo-300 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-700" },
   RECEPTIONIST: { label: "RECEPTION", className: "bg-amber-600/15 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-700" },
   PATIENT: { label: "PATIENT", className: "bg-gray-600/15 text-gray-700 border-gray-300 dark:bg-gray-500/15 dark:text-gray-300 dark:border-gray-600" },
 };
 
 function getPrimaryRoleBadge(roles: string[]) {
-  const priority = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST", "PATIENT"];
+  const priority = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "NURSE", "PHARMACIST", "RECEPTIONIST", "PATIENT"];
   for (const role of priority) {
     if (roles.includes(role)) return ROLE_BADGE_STYLES[role] ?? ROLE_BADGE_STYLES.PATIENT;
   }

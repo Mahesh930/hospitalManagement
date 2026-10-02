@@ -37,4 +37,14 @@ public class PatientDocument extends BaseEntity {
 
     @Column(length = 100)
     private String uploadedBy;
+
+    @Column(name = "is_verified")
+    @Builder.Default
+    private Boolean isVerified = false;
+
+    @Column(name = "verified_by", length = 100)
+    private String verifiedBy;
+
+    @Column(name = "verified_at")
+    private java.time.LocalDateTime verifiedAt;
 }

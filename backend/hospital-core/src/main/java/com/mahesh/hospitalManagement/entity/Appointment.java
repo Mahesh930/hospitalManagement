@@ -27,9 +27,27 @@ public class Appointment extends BaseEntity {
     private String reason;
 
     @Column(nullable = false, length = 30)
-    private String status; // BOOKED, CHECKED_IN, IN_CONSULTATION, COMPLETED, CANCELLED
+    private String status; // BOOKED, CONFIRMED, CHECKED_IN, IN_CONSULTATION, COMPLETED, CANCELLED, RESCHEDULED, NO_SHOW
 
     private Integer queueOrder;
+
+    @Column(name = "token_number", length = 30)
+    private String tokenNumber;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @Column(name = "confirmed_by", length = 100)
+    private String confirmedBy;
+
+    @Column(name = "reminder_sent_at")
+    private LocalDateTime reminderSentAt;
+
+    @Column(name = "referral_source", length = 150)
+    private String referralSource;
 
     @Version
     private Long version;

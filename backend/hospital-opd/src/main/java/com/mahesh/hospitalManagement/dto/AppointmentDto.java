@@ -23,4 +23,11 @@ public class AppointmentDto {
     private String reason;
     private String status;
     private Integer queueOrder;
+    private String tokenNumber;
+    private String cancellationReason;
+    private LocalDateTime confirmedAt;
+    private String confirmedBy;
+    private LocalDateTime reminderSentAt;
+    private String referralSource;
+    private String departmentName;
 }

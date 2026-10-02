@@ -12,5 +12,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
     Optional<Invoice> findByIdempotencyKey(String idempotencyKey);
     Optional<Invoice> findByConsultationId(UUID consultationId);
+    java.util.List<Invoice> findByPatientIdOrderByCreatedAtDesc(UUID patientId);
     long countByPaymentStatus(String paymentStatus);
 }

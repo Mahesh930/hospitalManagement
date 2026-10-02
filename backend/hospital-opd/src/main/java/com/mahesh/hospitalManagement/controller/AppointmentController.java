@@ -60,12 +60,22 @@ public class AppointmentController {
      * @param id Appointment UUID identifier.
      * @return ResponseEntity holding updated AppointmentDto with queue token info.
      */
-    @PostMapping("/{id}/check-in")
+    @RequestMapping(value = "/{id}/check-in", method = {RequestMethod.POST, RequestMethod.PATCH})
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<ApiResponse<AppointmentDto>> checkInPatient(@PathVariable UUID id) {
         String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
         AppointmentDto checkedIn = appointmentService.checkInPatient(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(checkedIn, "Patient checked in to queue"));
+    }
+
+    /**
+     * Retrieves appointment details by appointment ID.
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'PATIENT')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> getAppointmentById(@PathVariable UUID id) {
+        AppointmentDto dto = appointmentService.getAppointmentById(id);
+        return ResponseEntity.ok(ApiResponse.success(dto));
     }
 
     /**
@@ -92,5 +102,79 @@ public class AppointmentController {
     public ResponseEntity<ApiResponse<List<AppointmentDto>>> getPatientHistory(@PathVariable UUID patientId) {
         List<AppointmentDto> history = appointmentService.getPatientAppointmentHistory(patientId);
         return ResponseEntity.ok(ApiResponse.success(history));
+    }
+
+    /**
+     * Searches and filters appointments by date, doctor, status, or patient.
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'DOCTOR', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<AppointmentDto>>> searchAppointments(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            @RequestParam(required = false) UUID doctorId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID patientId) {
+        List<AppointmentDto> results = appointmentService.searchAppointments(date, doctorId, status, patientId);
+        return ResponseEntity.ok(ApiResponse.success(results));
+    }
+
+    /**
+     * Reschedules an appointment to a new date/time or reassigns doctor.
+     */
+    @PatchMapping("/{id}/reschedule")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> rescheduleAppointment(
+            @PathVariable UUID id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime newTime,
+            @RequestParam(required = false) UUID newDoctorId) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppointmentDto updated = appointmentService.rescheduleAppointment(id, newTime, newDoctorId, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Appointment rescheduled successfully"));
+    }
+
+    /**
+     * Cancels an appointment according to hospital policy with cancellation reason.
+     */
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN', 'PATIENT')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> cancelAppointment(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String reason) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppointmentDto cancelled = appointmentService.cancelAppointment(id, reason, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(cancelled, "Appointment cancelled successfully"));
+    }
+
+    /**
+     * Confirms a scheduled appointment.
+     */
+    @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> confirmAppointment(@PathVariable UUID id) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppointmentDto confirmed = appointmentService.confirmAppointment(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(confirmed, "Appointment confirmed"));
+    }
+
+    /**
+     * Marks an appointment as NO_SHOW.
+     */
+    @PatchMapping("/{id}/no-show")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> markNoShow(@PathVariable UUID id) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppointmentDto marked = appointmentService.markNoShow(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(marked, "Appointment marked as NO_SHOW"));
+    }
+
+    /**
+     * Dispatches/records an appointment reminder notification.
+     */
+    @PostMapping("/{id}/remind")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentDto>> sendReminder(@PathVariable UUID id) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        AppointmentDto reminded = appointmentService.sendReminder(id, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(reminded, "Appointment reminder notification dispatched"));
     }
 }

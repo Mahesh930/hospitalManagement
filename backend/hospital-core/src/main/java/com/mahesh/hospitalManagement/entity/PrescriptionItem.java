@@ -25,8 +25,26 @@ public class PrescriptionItem extends BaseEntity {
     @Column(length = 50)
     private String frequency; // e.g., 1-0-1 (twice daily)
 
+    @Column(length = 50)
+    private String route; // Oral, IV, IM, Subcutaneous, Topical, Inhalation
+
     private Integer durationDays;
+
+    private Integer quantity; // Total units/tablets to dispense
 
     @Column(length = 100)
     private String instructions; // e.g., After meals
+
+    @Builder.Default
+    private Integer dispensedQuantity = 0;
+
+    @Column(length = 50)
+    private String batchNumber;
+
+    @Column(length = 50)
+    @Builder.Default
+    private String status = "PENDING"; // PENDING, DISPENSED, PARTIAL, OUT_OF_STOCK, SUBSTITUTED
+
+    @Column(length = 255)
+    private String substitutionReason;
 }

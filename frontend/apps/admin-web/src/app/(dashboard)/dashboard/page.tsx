@@ -7,6 +7,7 @@ import { adminApi, HospitalAdminStatsDto } from "@medicore/api";
 import { useAuthStore } from "@/store/auth-store";
 import DoctorDashboard from "@/components/dashboard/DoctorDashboard";
 import NurseDashboard from "@/components/dashboard/NurseDashboard";
+import PharmacyDashboard from "@/components/dashboard/PharmacyDashboard";
 
 const quickActions = [
   { label: "Register Patient", href: "/patients/register", icon: Users, desc: "New patient registration" },
@@ -22,9 +23,10 @@ export default function DashboardPage() {
 
   const isDoctorOnly = roles.includes("DOCTOR") && !roles.includes("SUPER_ADMIN") && !roles.includes("ADMIN");
   const isNurseOnly = roles.includes("NURSE") && !roles.includes("SUPER_ADMIN") && !roles.includes("ADMIN");
+  const isPharmacistOnly = roles.includes("PHARMACIST") && !roles.includes("SUPER_ADMIN") && !roles.includes("ADMIN");
 
   useEffect(() => {
-    if (isDoctorOnly || isNurseOnly) return;
+    if (isDoctorOnly || isNurseOnly || isPharmacistOnly) return;
     async function loadStats() {
       try {
         const data = await adminApi.getStats();
@@ -36,7 +38,7 @@ export default function DashboardPage() {
       }
     }
     loadStats();
-  }, [isDoctorOnly, isNurseOnly]);
+  }, [isDoctorOnly, isNurseOnly, isPharmacistOnly]);
 
   if (isDoctorOnly) {
     return <DoctorDashboard />;
@@ -44,6 +46,10 @@ export default function DashboardPage() {
 
   if (isNurseOnly) {
     return <NurseDashboard />;
+  }
+
+  if (isPharmacistOnly) {
+    return <PharmacyDashboard />;
   }
 
   const statCards = [

@@ -151,6 +151,13 @@ public class BillingService {
         return mapToDto(invoice);
     }
 
+    @Transactional(readOnly = true)
+    public List<InvoiceDto> getInvoicesForPatient(UUID patientId) {
+        return invoiceRepository.findByPatientIdOrderByCreatedAtDesc(patientId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     private String generateInvoiceNumber() {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String randomPart = String.format("%04d", new Random().nextInt(10000));

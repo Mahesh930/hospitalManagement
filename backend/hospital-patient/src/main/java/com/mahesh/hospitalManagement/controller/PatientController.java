@@ -49,6 +49,23 @@ public class PatientController {
     }
 
     /**
+     * Updates permitted demographic, contact, and emergency contact details for an existing patient.
+     * 
+     * @param id Patient unique UUID identifier.
+     * @param requestDto Patient updated demographics and contact fields.
+     * @return ResponseEntity with updated PatientDto wrapped in ApiResponse.
+     */
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<ApiResponse<PatientDto>> updatePatientProfile(
+            @PathVariable UUID id,
+            @RequestBody PatientDto requestDto) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        PatientDto updated = patientService.updatePatient(id, requestDto, currentUser);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Patient details updated successfully"));
+    }
+
+    /**
      * Retrieves a patient profile by primary UUID.
      * 
      * @param id Unique UUID identifier of the patient.
