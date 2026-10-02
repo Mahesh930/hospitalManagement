@@ -5,13 +5,15 @@ import {
   User, Phone, Shield, HeartPulse, FileText, QrCode, Printer,
   CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, Search, Plus, Trash2
 } from "lucide-react";
-import { patientsApi, PatientDto } from "@medicore/api";
+import { patientsApi, PatientDto, receptionistApi, DuplicateCheckDto } from "@medicore/api";
 import { toast } from "sonner";
 
 export default function PatientRegistrationPage() {
   const [activeTab, setActiveTab] = useState<"basic" | "contact" | "emergency" | "medical" | "insurance" | "digital">("basic");
   const [submitting, setSubmitting] = useState(false);
   const [registeredPatient, setRegisteredPatient] = useState<PatientDto | null>(null);
+  const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckDto | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<PatientDto>({
@@ -90,17 +92,82 @@ export default function PatientRegistrationPage() {
     }
   };
 
+  const handleCheckDuplicate = async () => {
+    if (!formData.phone && !formData.aadhaar && !formData.name) {
+      toast.error("Please enter at least Name, Phone, or Aadhaar to check for duplicates");
+      return;
+    }
+
+    try {
+      setCheckingDuplicate(true);
+      const res = await receptionistApi.checkDuplicate({
+        phone: formData.phone || undefined,
+        aadhaar: formData.aadhaar || undefined,
+        name: formData.name || undefined,
+      });
+      setDuplicateCheck(res);
+      if (res?.duplicate) {
+        toast.warning(`Found ${res.matchCount} existing potential match(es)!`);
+      } else {
+        toast.success("No duplicate patient records found. Safe to register.");
+      }
+    } catch {
+      toast.error("Failed to check for duplicate patients");
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between bg-card border border-border p-6 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border p-6 rounded-2xl">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Register New Patient</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Enterprise front-office patient demographic capture, ABHA linking, insurance validation, and UHID generation.
           </p>
         </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCheckDuplicate}
+            disabled={checkingDuplicate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-background hover:bg-muted text-sm font-semibold transition-colors"
+          >
+            <Search className="w-4 h-4 text-primary" />
+            <span>{checkingDuplicate ? "Checking..." : "Pre-Check Duplicate"}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Duplicate Alert Banner */}
+      {duplicateCheck?.duplicate && duplicateCheck.matchedPatients?.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2.5 text-amber-700 dark:text-amber-300 font-bold text-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>Potential Duplicate Records Detected ({duplicateCheck.matchCount} Matches)</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A patient with matching demographics already exists in the system. Check the matches below to avoid creating duplicate UHIDs:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {duplicateCheck.matchedPatients.map((p) => (
+              <div key={p.id} className="bg-card/80 border border-amber-500/20 rounded-xl p-3.5 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground">{p.name}</span>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/20 text-amber-800 dark:text-amber-200">
+                    {p.matchReason}
+                  </span>
+                </div>
+                <p className="text-muted-foreground">UHID: <span className="font-semibold text-foreground">{p.uhid}</span> • Phone: <span className="font-semibold text-foreground">{p.phone}</span></p>
+                {p.aadhaar && <p className="text-muted-foreground">Aadhaar: <span className="font-semibold text-foreground">{p.aadhaar}</span></p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Registration Suite */}
       {!registeredPatient ? (

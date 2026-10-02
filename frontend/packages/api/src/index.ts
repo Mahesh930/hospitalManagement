@@ -6,9 +6,25 @@ export type { ApiResponse, PatientDto, AllergyDto, PatientTimelineDto, TimelineE
 export { appointmentsApi } from "./appointments";
 export type { AppointmentDto } from "./appointments";
 export { consultationsApi } from "./consultations";
-export type { ConsultationDto, PrescriptionDto, PrescriptionItemDto } from "./consultations";
+export type { ConsultationDto, PrescriptionDto, PrescriptionItemDto, ClinicalSafetyCheckDto, ClinicalAmendmentDto } from "./consultations";
 export { doctorsApi } from "./doctors";
-export type { DoctorDashboardDto, DoctorQueueItemDto, DoctorScheduleSlotDto, RecentConsultationSummaryDto, DoctorProfileDto } from "./doctors";
+export type {
+  DoctorDashboardDto,
+  DoctorQueueItemDto,
+  DoctorScheduleSlotDto,
+  RecentConsultationSummaryDto,
+  DoctorProfileDto,
+  PatientClinicalSummaryDto,
+  ClinicalTimelineEventDto,
+  DoctorInvestigationOrderDto,
+  DoctorInvestigationResultDto,
+  InpatientProgressNoteDto,
+  MedicalCertificateDto,
+  DoctorNurseInstructionDto,
+  AdmissionRecommendationDto,
+  DischargeRecommendationDto,
+  CatalogueItemDto
+} from "./doctors";
 export { invoicesApi } from "./invoices";
 export type { InvoiceDto, InvoiceItemDto } from "./invoices";
 export { hospitalsApi } from "./hospitals";
@@ -28,7 +44,15 @@ export type {
   QueueManagementDto,
   EmergencyRegistrationDto,
   DailyReceptionistReportDto,
-  PatientDocumentDto
+  PatientDocumentDto,
+  DuplicateCheckDto,
+  PatientMergeRequestDto,
+  DoctorScheduleDto,
+  InsuranceDetailsDto,
+  DiagnosticBookingDto,
+  ReceptionShiftHandoverDto,
+  PatientFeedbackDto,
+  LostAndFoundItemDto,
 } from "./receptionist";
 export { nurseApi } from "./nurse";
 export type {
@@ -50,3 +74,24 @@ export type {
   ShiftHandoverReportDto,
   InpatientSummaryDto
 } from "./nurse";
+export { pharmacyApi } from "./pharmacy";
+export type {
+  PrescriptionLineItemDto,
+  PrescriptionQueueItemDto,
+  MedicineBatchDto,
+  PharmacyDashboardDto,
+  PrescriptionVerificationDto,
+  DispenseItemRequestDto,
+  DispenseRequestDto,
+  DispensedItemDto,
+  DispenseResponseDto,
+  StockReceiptDto,
+  StockAdjustmentDto,
+  PurchaseOrderDto,
+  PharmacyReturnDto,
+  MedicineRecallDto,
+  PharmacyShiftHandoverDto,
+  PharmacyReportDto,
+  PharmacyStockMovement
+} from "./pharmacy";
+

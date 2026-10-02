@@ -52,13 +52,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             final String requestTokenHeader = request.getHeader("Authorization");
             
             // If no Authorization header or not a Bearer token, proceed to next filter
-            if (requestTokenHeader == null || !requestTokenHeader.startsWith("Bearer")) {
+            if (requestTokenHeader == null || !requestTokenHeader.startsWith("Bearer ") || requestTokenHeader.trim().length() <= 7) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             // Extract token and username
-            String token = requestTokenHeader.split("Bearer")[1].trim();
+            String token = requestTokenHeader.substring(7).trim();
+            if (token.isEmpty()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             String username = authUtil.getUsernameFromToken(token);
 
             // If username is found and security context is not already authenticated

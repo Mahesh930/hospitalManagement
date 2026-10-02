@@ -31,6 +31,9 @@ export const masterDataApi = {
   addMedicine: (data: MedicineDto) =>
     apiClient.post<ApiResponse<MedicineDto>>("/master-data/medicines", data),
 
+  getMedicines: () =>
+    apiClient.get<ApiResponse<MedicineDto[]>>("/master-data/medicines"),
+
   searchMedicines: (query?: string) =>
     apiClient.get<ApiResponse<MedicineDto[]>>("/master-data/medicines", { params: { query } }),
 

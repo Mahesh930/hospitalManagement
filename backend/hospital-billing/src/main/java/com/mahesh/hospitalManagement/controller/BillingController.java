@@ -136,4 +136,14 @@ public class BillingController {
         InvoiceDto invoice = billingService.getInvoice(invoiceId);
         return ResponseEntity.ok(ApiResponse.success(invoice));
     }
+
+    /**
+     * Retrieves all invoices associated with a specific patient for billing clearance.
+     */
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('CASHIER', 'ADMIN', 'RECEPTIONIST', 'PATIENT')")
+    public ResponseEntity<ApiResponse<java.util.List<InvoiceDto>>> getInvoicesForPatient(@PathVariable UUID patientId) {
+        java.util.List<InvoiceDto> list = billingService.getInvoicesForPatient(patientId);
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
 }

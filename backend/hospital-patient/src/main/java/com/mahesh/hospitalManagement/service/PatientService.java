@@ -30,7 +30,19 @@ public class PatientService {
 
     @Transactional
     public PatientDto registerPatient(PatientDto requestDto, String currentUser) {
-        if (requestDto.getPhone() != null && patientRepository.findByPhone(requestDto.getPhone()).isPresent()) {
+        if (requestDto.getName() == null || requestDto.getName().trim().isEmpty()) {
+            throw new BusinessValidationException("Patient name is required.");
+        }
+        if (requestDto.getPhone() == null || !requestDto.getPhone().matches("^[0-9]{10,15}$")) {
+            throw new BusinessValidationException("A valid mobile phone number (10-15 digits) is required.");
+        }
+        if (requestDto.getEmail() != null && !requestDto.getEmail().isBlank() && !requestDto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new BusinessValidationException("Invalid email address format.");
+        }
+        if (requestDto.getBirthDate() != null && requestDto.getBirthDate().isAfter(LocalDate.now())) {
+            throw new BusinessValidationException("Date of birth cannot be in the future.");
+        }
+        if (patientRepository.findByPhone(requestDto.getPhone()).isPresent()) {
             throw new BusinessValidationException("Patient with phone number " + requestDto.getPhone() + " already exists.");
         }
 
@@ -132,6 +144,47 @@ public class PatientService {
         Patient patient = patientRepository.findByUhid(uhid)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with UHID: " + uhid));
         return mapToDto(patient);
+    }
+
+    @Transactional
+    public PatientDto updatePatient(UUID id, PatientDto dto, String currentUser) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + id));
+
+        if (dto.getName() != null && !dto.getName().isBlank()) patient.setName(dto.getName());
+        if (dto.getMiddleName() != null) patient.setMiddleName(dto.getMiddleName());
+        if (dto.getLastName() != null) patient.setLastName(dto.getLastName());
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            if (!dto.getPhone().equals(patient.getPhone())) {
+                patientRepository.findByPhone(dto.getPhone()).ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new BusinessValidationException("Phone number " + dto.getPhone() + " is already in use by another patient.");
+                    }
+                });
+            }
+            patient.setPhone(dto.getPhone());
+        }
+        if (dto.getAltPhone() != null) patient.setAltPhone(dto.getAltPhone());
+        if (dto.getEmail() != null) patient.setEmail(dto.getEmail());
+        if (dto.getGender() != null) patient.setGender(dto.getGender());
+        if (dto.getBirthDate() != null) patient.setBirthDate(dto.getBirthDate());
+        if (dto.getAge() != null) patient.setAge(dto.getAge());
+        if (dto.getBloodGroup() != null) patient.setBloodGroup(parseBloodGroup(dto.getBloodGroup()));
+        if (dto.getMaritalStatus() != null) patient.setMaritalStatus(dto.getMaritalStatus());
+        if (dto.getOccupation() != null) patient.setOccupation(dto.getOccupation());
+        if (dto.getAddress() != null) patient.setAddress(dto.getAddress());
+        if (dto.getCity() != null) patient.setCity(dto.getCity());
+        if (dto.getState() != null) patient.setState(dto.getState());
+        if (dto.getPincode() != null) patient.setPincode(dto.getPincode());
+        if (dto.getEmergencyContactName() != null) patient.setEmergencyContactName(dto.getEmergencyContactName());
+        if (dto.getEmergencyContactRelation() != null) patient.setEmergencyContactRelation(dto.getEmergencyContactRelation());
+        if (dto.getEmergencyContactPhone() != null) patient.setEmergencyContactPhone(dto.getEmergencyContactPhone());
+        if (dto.getTpaDetails() != null) patient.setTpaDetails(dto.getTpaDetails());
+        patient.setUpdatedBy(currentUser);
+
+        Patient updated = patientRepository.save(patient);
+        auditService.logAction(currentUser, "UPDATE_PATIENT", null, "Updated patient demographic details for UHID: " + patient.getUhid(), "127.0.0.1", "WEB", "HOSPITAL");
+        return mapToDto(updated);
     }
 
     @Transactional(readOnly = true)

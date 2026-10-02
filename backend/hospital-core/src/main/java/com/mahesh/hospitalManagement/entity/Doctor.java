@@ -30,6 +30,17 @@ public class Doctor extends BaseEntity {
     @Column(length = 50)
     private String registrationNumber;
 
+    @Column(length = 100)
+    private String qualification;
+
+    @Column(length = 20)
+    private String phone;
+
+    private Integer experienceYears;
+
+    @Column(length = 255)
+    private String scheduleSummary; // e.g. "Mon-Fri: 09:00 - 17:00, Sat: 09:00 - 13:00"
+
     @Column(nullable = false)
     private Double consultationFee;
 

@@ -34,6 +34,13 @@ public class DataInitializer implements CommandLineRunner {
     private final com.mahesh.hospitalManagement.repository.WardRepository wardRepository;
     private final com.mahesh.hospitalManagement.repository.BedRepository bedRepository;
     private final com.mahesh.hospitalManagement.repository.BedAdmissionRepository bedAdmissionRepository;
+    private final com.mahesh.hospitalManagement.repository.DoctorRepository doctorRepository;
+    private final com.mahesh.hospitalManagement.repository.PatientAllergyRepository patientAllergyRepository;
+    private final com.mahesh.hospitalManagement.repository.AppointmentRepository appointmentRepository;
+    private final com.mahesh.hospitalManagement.repository.PatientVisitRepository patientVisitRepository;
+    private final com.mahesh.hospitalManagement.repository.DiagnosisCatalogueRepository diagnosisCatalogueRepository;
+    private final com.mahesh.hospitalManagement.repository.MedicineCatalogueRepository medicineCatalogueRepository;
+    private final com.mahesh.hospitalManagement.repository.MedicineBatchRepository medicineBatchRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -90,6 +97,18 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
             userRepository.save(receptionist);
             log.info("Initialized default RECEPTIONIST user: username='receptionist', password='receptionist123'");
+        }
+
+        // Seed default Pharmacist user account for pharmacy operations and dispensing workflows
+        if (userRepository.findByUsername("pharmacist").isEmpty()) {
+            User pharmacist = User.builder()
+                    .username("pharmacist")
+                    .password(passwordEncoder.encode("pharmacist123"))
+                    .providerType(AuthProviderType.EMAIL)
+                    .roles(Set.of(RoleType.PHARMACIST))
+                    .build();
+            userRepository.save(pharmacist);
+            log.info("Initialized default PHARMACIST user: username='pharmacist', password='pharmacist123'");
         }
 
         // Auto-backfill & synchronize User accounts for all existing patients (Credentials: Email/Phone, Password: Password@123)
@@ -327,8 +346,209 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
             bedAdmissionRepository.save(ba);
             bedIcu1.setStatus("OCCUPIED");
-            bedRepository.save(bedIcu1);
             log.info("Seeded active admission in ICU for patient: {}", icuPatient.getName());
+        }
+
+        // 4. Seed default DOCTOR user and Doctor profile
+        List<String> doctorUsernames = List.of("doctor", "doctor@medicore.com");
+        User primaryDoctorUser = null;
+        for (String docUsername : doctorUsernames) {
+            Optional<User> existingDoc = userRepository.findByUsername(docUsername);
+            User docUser;
+            if (existingDoc.isEmpty()) {
+                docUser = User.builder()
+                        .username(docUsername)
+                        .password(passwordEncoder.encode("Password@123"))
+                        .providerType(AuthProviderType.EMAIL)
+                        .roles(Set.of(RoleType.DOCTOR))
+                        .hospital(defaultHospital)
+                        .build();
+                docUser = userRepository.save(docUser);
+                log.info("Initialized default DOCTOR user: username='{}', password='Password@123'", docUsername);
+            } else {
+                docUser = existingDoc.get();
+                docUser.setPassword(passwordEncoder.encode("Password@123"));
+                if (docUser.getRoles() == null || !docUser.getRoles().contains(RoleType.DOCTOR)) {
+                    docUser.setRoles(Set.of(RoleType.DOCTOR));
+                }
+                docUser = userRepository.save(docUser);
+            }
+            if (primaryDoctorUser == null) {
+                primaryDoctorUser = docUser;
+            }
+        }
+
+        final User doctorUserRef = primaryDoctorUser;
+        com.mahesh.hospitalManagement.entity.Doctor seededDoctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
+            com.mahesh.hospitalManagement.entity.Doctor d = com.mahesh.hospitalManagement.entity.Doctor.builder()
+                    .user(doctorUserRef)
+                    .name("Dr. Sarah Jenkins")
+                    .email("doctor@medicore.com")
+                    .specialization("Cardiology & Internal Medicine")
+                    .registrationNumber("MED-REG-48920")
+                    .consultationFee(600.0)
+                    .roomNumber("OPD-102")
+                    .isAvailable(true)
+                    .phone("9876543210")
+                    .qualification("MBBS, MD (Medicine)")
+                    .experienceYears(12)
+                    .scheduleSummary("Mon-Fri: 09:00 AM - 05:00 PM, Sat: 09:00 AM - 01:00 PM")
+                    .hospital(defaultHospital)
+                    .build();
+            return doctorRepository.save(d);
+        });
+
+        // 5. Seed patient allergy for Ramesh Kumar (to test drug allergy hard blocker)
+        if (patientAllergyRepository.findByPatientId(admittedPatient.getId()).isEmpty()) {
+            com.mahesh.hospitalManagement.entity.PatientAllergy allergy = com.mahesh.hospitalManagement.entity.PatientAllergy.builder()
+                    .patient(admittedPatient)
+                    .allergen("Amoxicillin")
+                    .severity("SEVERE")
+                    .reaction("Anaphylaxis, Angioedema and skin hives")
+                    .build();
+            patientAllergyRepository.save(allergy);
+            log.info("Seeded critical allergy 'Amoxicillin' for patient: {}", admittedPatient.getName());
+        }
+
+        // 6. Seed today's appointment and active queue visit for Dr. Sarah Jenkins with Ramesh Kumar
+        java.time.LocalDateTime todaySlot = java.time.LocalDateTime.now().withHour(10).withMinute(30).withSecond(0).withNano(0);
+        if (appointmentRepository.findByDoctorIdAndAppointmentTimeBetweenOrderByAppointmentTimeAsc(
+                seededDoctor.getId(), java.time.LocalDate.now().atStartOfDay(), java.time.LocalDate.now().atTime(java.time.LocalTime.MAX)).isEmpty()) {
+            com.mahesh.hospitalManagement.entity.Appointment appt = com.mahesh.hospitalManagement.entity.Appointment.builder()
+                    .doctor(seededDoctor)
+                    .patient(admittedPatient)
+                    .appointmentTime(todaySlot)
+                    .status("CHECKED_IN")
+                    .reason("Chest tightness and exertion dyspnea")
+                    .queueOrder(1)
+                    .build();
+            com.mahesh.hospitalManagement.entity.Appointment savedAppt = appointmentRepository.save(appt);
+
+            com.mahesh.hospitalManagement.entity.PatientVisit visit = com.mahesh.hospitalManagement.entity.PatientVisit.builder()
+                    .patient(admittedPatient)
+                    .doctor(seededDoctor)
+                    .appointment(savedAppt)
+                    .visitType("OPD")
+                    .tokenNumber("T-101")
+                    .status("WAITING_DOCTOR")
+                    .priorityRank(1)
+                    .checkInTime(java.time.LocalDateTime.now().minusMinutes(20))
+                    .notes("Chest tightness and exertion dyspnea")
+                    .build();
+            patientVisitRepository.save(visit);
+            log.info("Seeded today's appointment and active queue visit for Dr. Sarah Jenkins with patient: {}", admittedPatient.getName());
+        }
+
+        // 7. Seed ICD-10 Diagnosis Catalogue
+        if (diagnosisCatalogueRepository.findAll().isEmpty()) {
+            diagnosisCatalogueRepository.save(com.mahesh.hospitalManagement.entity.DiagnosisCatalogue.builder()
+                    .icdCode("I10")
+                    .description("Essential (primary) hypertension")
+                    .category("Cardiovascular")
+                    .build());
+            diagnosisCatalogueRepository.save(com.mahesh.hospitalManagement.entity.DiagnosisCatalogue.builder()
+                    .icdCode("J45.909")
+                    .description("Unspecified asthma, uncomplicated")
+                    .category("Respiratory")
+                    .build());
+            diagnosisCatalogueRepository.save(com.mahesh.hospitalManagement.entity.DiagnosisCatalogue.builder()
+                    .icdCode("E11.9")
+                    .description("Type 2 diabetes mellitus without complications")
+                    .category("Endocrine")
+                    .build());
+            diagnosisCatalogueRepository.save(com.mahesh.hospitalManagement.entity.DiagnosisCatalogue.builder()
+                    .icdCode("J06.9")
+                    .description("Acute upper respiratory infection, unspecified")
+                    .category("Infectious")
+                    .build());
+            log.info("Seeded default ICD-10 diagnosis catalogue");
+        }
+
+        // 8. Seed Medicine Catalogue
+        if (medicineCatalogueRepository.findAll().isEmpty()) {
+            medicineCatalogueRepository.save(com.mahesh.hospitalManagement.entity.MedicineCatalogue.builder()
+                    .name("Amoxicillin 500mg")
+                    .genericName("Amoxicillin")
+                    .dosageForm("Capsule")
+                    .strength("500mg")
+                    .manufacturer("PharmaCorp")
+                    .unitPrice(15.0)
+                    .build());
+            medicineCatalogueRepository.save(com.mahesh.hospitalManagement.entity.MedicineCatalogue.builder()
+                    .name("Paracetamol 650mg")
+                    .genericName("Acetaminophen")
+                    .dosageForm("Tablet")
+                    .strength("650mg")
+                    .manufacturer("MediLife")
+                    .unitPrice(5.0)
+                    .build());
+            medicineCatalogueRepository.save(com.mahesh.hospitalManagement.entity.MedicineCatalogue.builder()
+                    .name("Metformin 500mg")
+                    .genericName("Metformin HCl")
+                    .dosageForm("Tablet")
+                    .strength("500mg")
+                    .manufacturer("HealthCare")
+                    .unitPrice(8.0)
+                    .build());
+            medicineCatalogueRepository.save(com.mahesh.hospitalManagement.entity.MedicineCatalogue.builder()
+                    .name("Aspirin 75mg")
+                    .genericName("Acetylsalicylic acid")
+                    .dosageForm("Tablet")
+                    .strength("75mg")
+                    .manufacturer("CardioPharm")
+                    .unitPrice(6.0)
+                    .build());
+            medicineCatalogueRepository.save(com.mahesh.hospitalManagement.entity.MedicineCatalogue.builder()
+                    .name("Warfarin 5mg")
+                    .genericName("Warfarin Sodium")
+                    .dosageForm("Tablet")
+                    .strength("5mg")
+                    .manufacturer("CardioPharm")
+                    .unitPrice(12.0)
+                    .build());
+            log.info("Seeded default hospital medicine catalogue");
+        }
+
+        // 9. Seed Pharmacy Medicine Batches (FEFO Inventory)
+        if (medicineBatchRepository.findAll().isEmpty()) {
+            var medicines = medicineCatalogueRepository.findAll();
+            for (var med : medicines) {
+                // Batch 1: Primary active stock (healthy expiry)
+                medicineBatchRepository.save(com.mahesh.hospitalManagement.entity.MedicineBatch.builder()
+                        .medicine(med)
+                        .batchNumber("B-" + med.getName().substring(0, 3).toUpperCase() + "-2026")
+                        .expiryDate(java.time.LocalDate.now().plusMonths(14))
+                        .mfgDate(java.time.LocalDate.now().minusMonths(2))
+                        .purchasePrice((med.getUnitPrice() != null ? med.getUnitPrice() : 10.0) * 0.7)
+                        .mrp(med.getUnitPrice() != null ? med.getUnitPrice() * 1.2 : 15.0)
+                        .sellingPrice(med.getUnitPrice() != null ? med.getUnitPrice() : 10.0)
+                        .quantityOnHand(150)
+                        .quarantinedQuantity(0)
+                        .storageLocation("Rack A-" + (med.getName().length() % 5 + 1) + ", Shelf 2")
+                        .supplierName("Apex Healthcare Distributors")
+                        .status("ACTIVE")
+                        .build());
+
+                // Batch 2: Near expiry batch for first medicine to demonstrate alerts
+                if (med.getName().toLowerCase().contains("amoxicillin")) {
+                    medicineBatchRepository.save(com.mahesh.hospitalManagement.entity.MedicineBatch.builder()
+                            .medicine(med)
+                            .batchNumber("EXP-AMX-2025")
+                            .expiryDate(java.time.LocalDate.now().plusDays(20))
+                            .mfgDate(java.time.LocalDate.now().minusMonths(18))
+                            .purchasePrice(8.0)
+                            .mrp(18.0)
+                            .sellingPrice(15.0)
+                            .quantityOnHand(12)
+                            .quarantinedQuantity(0)
+                            .storageLocation("Front Counter Fast-Rack 1")
+                            .supplierName("Apex Healthcare Distributors")
+                            .status("NEAR_EXPIRY")
+                            .notes("Near expiry alert (expires in 20 days)")
+                            .build());
+                }
+            }
+            log.info("Seeded initial pharmacy medicine batches with FEFO inventory");
         }
     }
 }

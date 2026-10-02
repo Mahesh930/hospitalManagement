@@ -52,6 +52,21 @@ public class BedAdmission extends BaseEntity {
     @Column(length = 1000)
     private String dischargeNotes;
 
+    @Column(columnDefinition = "TEXT")
+    private String dischargeRecommendation;
+
+    @Column(columnDefinition = "TEXT")
+    private String dischargeInstructions;
+
+    @Column(length = 100)
+    private String conditionAtDischarge;
+
+    @Column(columnDefinition = "TEXT")
+    private String dietInstructions;
+
+    @Column(columnDefinition = "TEXT")
+    private String activityInstructions;
+
     @Column(length = 100)
     private String admittedByNurse;
 }

@@ -21,5 +21,8 @@ public class PatientDocumentDto {
     private String mimeType;
     private Long sizeBytes;
     private String uploadedBy;
+    private Boolean isVerified;
+    private String verifiedBy;
+    private LocalDateTime verifiedAt;
     private LocalDateTime createdAt;
 }

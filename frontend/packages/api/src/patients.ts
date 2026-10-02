@@ -117,11 +117,17 @@ export const patientsApi = {
   getByUhid: (uhid: string) =>
     apiClient.get<ApiResponse<PatientDto>>(`/patients/uhid/${uhid}`),
 
+  getAll: () =>
+    apiClient.get<ApiResponse<PatientDto[]>>("/patients"),
+
   search: (query: string, hospitalId?: string) =>
     apiClient.get<ApiResponse<PatientDto[]>>("/patients/search", { params: { query, hospitalId: hospitalId && hospitalId !== "ALL" ? hospitalId : undefined } }),
 
   addAllergy: (patientId: string, allergy: AllergyDto) =>
     apiClient.post<ApiResponse<PatientDto>>(`/patients/${patientId}/allergies`, allergy),
+
+  updateProfile: (id: string, data: Partial<PatientDto>) =>
+    apiClient.patch<ApiResponse<PatientDto>>(`/patients/${id}`, data),
 
   getTimeline: (patientId: string) =>
     apiClient.get<ApiResponse<PatientTimelineDto>>(`/patients/${patientId}/timeline`),
