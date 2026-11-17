@@ -32,12 +32,23 @@ build/
 ### VS Code ###
 .vscode/
 
-### Frontend ###
+### Frontend / Monorepo ###
 node_modules/
 .next/
 .turbo/
 *.tsbuildinfo
+.env
+!.env.example
 
 ### Scratch / Temp ###
 scratch/
+apps/api-e2e/reports/
+
+### Flutter ###
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/.packages
+apps/mobile/build/
+apps/mobile/.pub-cache/
+apps/mobile/.pub/
 

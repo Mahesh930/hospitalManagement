@@ -1,0 +1,9 @@
+{
+  "name": "@medicore/database",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Database SSOT docs + modular seed catalog for MediCore (JPA/Hibernate runtime in apps/api)",
+  "scripts": {
+    "seed:catalog": "node ./scripts/print-seed-catalog.mjs"
+  }
+}

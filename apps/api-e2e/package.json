@@ -1,0 +1,11 @@
+{
+  "name": "@medicore/api-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "description": "API / role smoke e2e harness for MediCore",
+  "scripts": {
+    "test": "node ./run-role-smoke.mjs",
+    "test:full": "node ./test-api-full.mjs",
+    "test:ps1": "powershell -ExecutionPolicy Bypass -File ../../scripts/test-all-roles.ps1"
+  }
+}
