@@ -1,0 +1,89 @@
+services:
+  gateway:
+    image: nginx:alpine
+    container_name: medicore-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - medicore-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: medicore-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hospital}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hospital}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medicore-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: medicore-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/hospital}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-root}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+      SPRING_JPA_SHOW_SQL: ${SPRING_JPA_SHOW_SQL:-false}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - medicore-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web-admin/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+    container_name: medicore-frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - medicore-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  medicore-network:
+    driver: bridge

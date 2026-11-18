@@ -16,13 +16,13 @@
 	<description>Enterprise Hospital Management System Monorepo</description>
 
 	<modules>
-		<module>backend/hospital-core</module>
-		<module>backend/hospital-patient</module>
-		<module>backend/hospital-reception</module>
-		<module>backend/hospital-opd</module>
-		<module>backend/hospital-billing</module>
-		<module>backend/hospital-nurse</module>
-		<module>backend/hospital-app</module>
+		<module>apps/api/hospital-core</module>
+		<module>apps/api/hospital-patient</module>
+		<module>apps/api/hospital-reception</module>
+		<module>apps/api/hospital-opd</module>
+		<module>apps/api/hospital-billing</module>
+		<module>apps/api/hospital-nurse</module>
+		<module>apps/api/hospital-app</module>
 	</modules>
 	<url/>
 	<licenses>

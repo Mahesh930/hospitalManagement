@@ -1,0 +1,32 @@
+{
+  "name": "medicore-erp",
+  "private": true,
+  "description": "MediCore Hospital ERP — enterprise monorepo (Spring modular monolith + Next.js + Flutter)",
+  "scripts": {
+    "dev": "turbo run dev --filter=@medicore/web-admin",
+    "dev:web": "turbo run dev --filter=@medicore/web-admin",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "api:build": "mvnw.cmd -pl apps/api/hospital-app -am package -DskipTests",
+    "api:run": "mvnw.cmd -pl apps/api/hospital-app spring-boot:run",
+    "mobile:get": "cd apps/mobile && flutter pub get",
+    "mobile:test": "cd apps/mobile && flutter test",
+    "mobile:run": "cd apps/mobile && flutter run",
+    "test:roles": "node scripts/test-frontend-roles.mjs",
+    "test:e2e": "node scripts/test-frontend-e2e-routes.mjs",
+    "test:api": "node apps/api-e2e/test-api-full.mjs",
+    "test:api-smoke": "node apps/api-e2e/run-role-smoke.mjs",
+    "test:api-roles": "powershell -ExecutionPolicy Bypass -File scripts/test-all-roles.ps1",
+    "test:mobile": "cd apps/mobile && flutter test",
+    "test:all": "node scripts/test-all.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.30.1",
+  "engines": {
+    "node": ">=18"
+  }
+}

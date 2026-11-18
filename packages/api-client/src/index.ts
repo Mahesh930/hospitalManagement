@@ -1,0 +1,105 @@
+export { default as apiClient } from "./client";
+export { authApi } from "./auth";
+export type { LoginRequest, LoginResponse } from "./auth";
+export { patientsApi } from "./patients";
+export type { ApiResponse, PatientDto, AllergyDto, PatientTimelineDto, TimelineEncounterDto, TimelinePrescriptionItemDto, TimelineVitalDto, PatientPortalDto } from "./patients";
+export { appointmentsApi } from "./appointments";
+export type { AppointmentDto } from "./appointments";
+export { consultationsApi } from "./consultations";
+export type { ConsultationDto, PrescriptionDto, PrescriptionItemDto, ClinicalSafetyCheckDto, ClinicalAmendmentDto } from "./consultations";
+export { doctorsApi } from "./doctors";
+export type {
+  DoctorDashboardDto,
+  DoctorQueueItemDto,
+  DoctorScheduleSlotDto,
+  RecentConsultationSummaryDto,
+  DoctorProfileDto,
+  PatientClinicalSummaryDto,
+  ClinicalTimelineEventDto,
+  DoctorInvestigationOrderDto,
+  DoctorInvestigationResultDto,
+  InpatientProgressNoteDto,
+  MedicalCertificateDto,
+  DoctorNurseInstructionDto,
+  AdmissionRecommendationDto,
+  DischargeRecommendationDto,
+  CatalogueItemDto
+} from "./doctors";
+export { invoicesApi } from "./invoices";
+export type { InvoiceDto, InvoiceItemDto, BillingStatsDto } from "./invoices";
+export { hospitalsApi } from "./hospitals";
+export type { HospitalDto } from "./hospitals";
+export { masterDataApi } from "./master-data";
+export type { MedicineDto, DiagnosisDto, ChargeDto } from "./master-data";
+export { superAdminApi } from "./superAdmin";
+export type { SuperAdminHospitalDto, FeatureFlagDto, SuperAdminUserDto, PlatformStatsDto, PageResponse } from "./superAdmin";
+export { adminApi } from "./admin";
+export type { HospitalAdminStatsDto, OnboardDoctorRequest, DoctorResponseDto } from "./admin";
+export { receptionistApi } from "./receptionist";
+export type {
+  ReceptionistDashboardDto,
+  DoctorQueueStatusDto,
+  VitalSignsDto,
+  WalkinTokenRequestDto,
+  QueueManagementDto,
+  EmergencyRegistrationDto,
+  DailyReceptionistReportDto,
+  PatientDocumentDto,
+  DuplicateCheckDto,
+  PatientMergeRequestDto,
+  DoctorScheduleDto,
+  InsuranceDetailsDto,
+  DiagnosticBookingDto,
+  ReceptionShiftHandoverDto,
+  PatientFeedbackDto,
+  LostAndFoundItemDto,
+} from "./receptionist";
+export { nurseApi } from "./nurse";
+export type {
+  NurseDashboardDto,
+  WardDto,
+  BedDto,
+  BedAdmissionRequestDto,
+  BedAdmissionDto,
+  MedicationAdministrationRequestDto,
+  MedicationAdministrationDto,
+  NursingNoteDto,
+  FluidBalanceDto,
+  FluidBalanceSummaryDto,
+  NursingCareRecordDto,
+  NursingTaskDto,
+  ClinicalEscalationDto,
+  NursingAssessmentDto,
+  NursingIncidentDto,
+  ShiftHandoverReportDto,
+  InpatientSummaryDto
+} from "./nurse";
+export { pharmacyApi } from "./pharmacy";
+export type {
+  PrescriptionLineItemDto,
+  PrescriptionQueueItemDto,
+  MedicineBatchDto,
+  PharmacyDashboardDto,
+  PrescriptionVerificationDto,
+  DispenseItemRequestDto,
+  DispenseRequestDto,
+  DispensedItemDto,
+  DispenseResponseDto,
+  StockReceiptDto,
+  StockAdjustmentDto,
+  PurchaseOrderDto,
+  PharmacyReturnDto,
+  MedicineRecallDto,
+  PharmacyShiftHandoverDto,
+  PharmacyReportDto,
+  PharmacyStockMovement
+} from "./pharmacy";
+export { labApi } from "./lab";
+export type {
+  LabWorklistItemDto,
+  LabSampleCollectionDto,
+  LabResultEntryDto,
+  LabStatsDto
+} from "./lab";
+export { rolesApi, ALL_SYSTEM_ROLES } from "./roles";
+export type { RoleCatalogItemDto, MyStationDto } from "./roles";

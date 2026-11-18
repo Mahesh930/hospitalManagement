@@ -1,0 +1,12 @@
+target/
+**/target/
+.git/
+.gitignore
+.idea/
+.cursor/
+*.iml
+frontend/
+.mvn/
+logs/
+*.log
+
